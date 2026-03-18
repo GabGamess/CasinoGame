@@ -1,0 +1,3736 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Casino Empire — Simulation Économique</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold: #c9a84c;
+  --gold-light: #f0d080;
+  --gold-dim: #6b5520;
+  --bg: #070a0f;
+  --bg2: #0d1117;
+  --bg3: #141b24;
+  --bg4: #1c2533;
+  --surface: #1a2234;
+  --surface2: #222d40;
+  --border: #2a3a54;
+  --border-gold: #3a2e10;
+  --text: #d4dde8;
+  --text-dim: #6a7f9a;
+  --text-muted: #3a4f6a;
+  --green: #00e676;
+  --green-dim: #00522a;
+  --red: #ff3d4f;
+  --red-dim: #5a0010;
+  --blue: #4fc3f7;
+  --blue-dim: #0a3a5a;
+  --purple: #bb86fc;
+  --orange: #ff9800;
+  --teal: #00bcd4;
+  --chip-red: #e53935;
+  --chip-blue: #1e88e5;
+  --chip-green: #43a047;
+  --chip-black: #212121;
+  --shadow-gold: 0 0 20px rgba(201,168,76,0.15);
+  --shadow-card: 0 8px 32px rgba(0,0,0,0.6);
+  --radius: 12px;
+  --radius-sm: 6px;
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-body: 'DM Mono', monospace;
+  --font-serif: 'Playfair Display', serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:13px;overflow:hidden}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ── LAYOUT ── */
+#app{display:grid;grid-template-rows:56px 1fr;grid-template-columns:220px 1fr 260px;height:100vh;gap:0}
+#topbar{grid-column:1/-1;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px;z-index:100}
+#sidebar{grid-row:2;background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column}
+#main{grid-row:2;overflow-y:auto;padding:20px;background:var(--bg)}
+#rightbar{grid-row:2;background:var(--bg2);border-left:1px solid var(--border);overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+
+/* ── TOPBAR ── */
+.tb-logo{font-family:var(--font-display);font-size:22px;letter-spacing:3px;color:var(--gold);text-shadow:0 0 20px rgba(201,168,76,0.5);flex:0 0 auto}
+.tb-logo span{color:var(--text-dim)}
+.tb-stats{display:flex;gap:8px;flex:1;overflow:hidden}
+.tb-stat{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.tb-stat .icon{font-size:14px}
+.tb-stat .label{color:var(--text-dim);font-size:10px;text-transform:uppercase;letter-spacing:1px}
+.tb-stat .value{color:var(--gold-light);font-size:13px;font-weight:500}
+.tb-stat .value.green{color:var(--green)}
+.tb-stat .value.red{color:var(--red)}
+.tb-btn{margin-left:auto;background:linear-gradient(135deg,#c9a84c,#8a6520);border:none;color:#000;font-family:var(--font-display);font-size:14px;letter-spacing:2px;padding:8px 18px;border-radius:var(--radius-sm);cursor:pointer;transition:all .2s}
+.tb-btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(201,168,76,0.4)}
+.xp-bar-wrap{flex:0 0 140px;display:flex;flex-direction:column;gap:2px}
+.xp-label{font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;display:flex;justify-content:space-between}
+.xp-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.xp-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light));transition:width .5s}
+
+/* ── SIDEBAR ── */
+.sb-section{padding:8px 0;border-bottom:1px solid var(--border)}
+.sb-section-title{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);padding:6px 14px}
+.sb-item{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;transition:all .15s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--bg3);color:var(--text)}
+.sb-item.active{background:var(--surface);border-left-color:var(--gold);color:var(--gold-light)}
+.sb-item .icon{font-size:16px;width:20px;text-align:center}
+.sb-item .name{font-size:12px}
+.sb-item .badge{margin-left:auto;background:var(--red);color:#fff;font-size:9px;padding:1px 5px;border-radius:10px}
+.sb-item .badge.gold{background:var(--gold-dim);color:var(--gold-light)}
+.sb-player-card{padding:14px;display:flex;flex-direction:column;gap:8px}
+.player-avatar{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--gold-dim),var(--gold));display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid var(--gold)}
+.player-name{font-family:var(--font-serif);font-size:15px;color:var(--gold-light)}
+.player-title{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px}
+.player-rep{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-dim)}
+.rep-stars{color:var(--gold);letter-spacing:2px}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.card-gold{border-color:var(--border-gold);background:linear-gradient(135deg,var(--surface),#1a1508)}
+.card-title{font-family:var(--font-display);font-size:18px;letter-spacing:2px;color:var(--gold-light);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card-title .sub{font-family:var(--font-body);font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-left:auto}
+
+/* ── VIEWS ── */
+.view{display:none}
+.view.active{display:block}
+
+/* ── DASHBOARD ── */
+.dash-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;right:0;width:60px;height:60px;border-radius:0 12px 0 60px;opacity:.1}
+.stat-card.money::before{background:var(--gold)}
+.stat-card.crypto::before{background:var(--blue)}
+.stat-card.passive::before{background:var(--green)}
+.stat-card.tokens::before{background:var(--purple)}
+.stat-card.level::before{background:var(--orange)}
+.stat-card.rep::before{background:var(--teal)}
+.stat-card .sc-icon{font-size:24px;margin-bottom:6px}
+.stat-card .sc-label{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--text-dim)}
+.stat-card .sc-value{font-family:var(--font-display);font-size:26px;letter-spacing:1px;color:var(--text);margin:2px 0}
+.stat-card .sc-value.gold{color:var(--gold-light)}
+.stat-card .sc-change{font-size:10px;color:var(--text-dim)}
+.stat-card .sc-change.up{color:var(--green)}
+.stat-card .sc-change.down{color:var(--red)}
+
+/* ── CHARTS ── */
+.chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+.chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.chart-title{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--text-dim)}
+.chart-tabs{display:flex;gap:4px}
+.chart-tab{background:var(--bg3);border:1px solid var(--border);color:var(--text-dim);font-family:var(--font-body);font-size:10px;padding:3px 8px;border-radius:4px;cursor:pointer}
+.chart-tab.active{background:var(--gold-dim);border-color:var(--gold);color:var(--gold-light)}
+canvas{width:100%!important}
+
+/* ── MARKET ── */
+.market-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.asset-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;transition:all .2s}
+.asset-row:hover{border-color:var(--gold-dim);background:var(--surface2)}
+.asset-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.asset-info{flex:1;min-width:0}
+.asset-name{font-size:12px;color:var(--text)}
+.asset-price{font-size:11px;color:var(--text-dim)}
+.asset-change{font-size:12px;font-weight:500;text-align:right}
+.asset-change.up{color:var(--green)}
+.asset-change.down{color:var(--red)}
+.mini-chart{display:flex;align-items:flex-end;gap:1px;height:24px;width:60px}
+.mini-bar{flex:1;min-width:2px;border-radius:1px;transition:height .3s}
+
+/* ── CASINO GAMES ── */
+.games-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+.game-card{background:linear-gradient(135deg,var(--surface),var(--bg3));border:1px solid var(--border);border-radius:var(--radius);padding:20px;cursor:pointer;transition:all .3s;position:relative;overflow:hidden;text-align:center}
+.game-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent,rgba(201,168,76,.05));opacity:0;transition:opacity .3s}
+.game-card:hover::before{opacity:1}
+.game-card:hover{border-color:var(--gold-dim);transform:translateY(-2px);box-shadow:var(--shadow-gold)}
+.game-card .gc-icon{font-size:40px;margin-bottom:10px}
+.game-card .gc-name{font-family:var(--font-display);font-size:20px;letter-spacing:2px;color:var(--gold-light)}
+.game-card .gc-desc{font-size:10px;color:var(--text-dim);margin-top:4px}
+.game-card .gc-rtp{position:absolute;top:10px;right:10px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;font-size:9px;padding:2px 6px;color:var(--text-dim)}
+.game-card .gc-jackpot{background:linear-gradient(90deg,var(--gold-dim),#2a1a05);border:1px solid var(--border-gold);border-radius:4px;font-size:10px;padding:3px 8px;color:var(--gold-light);margin-top:8px;display:inline-block}
+
+/* ── MODAL / GAME ── */
+#game-modal{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .3s}
+#game-modal.open{opacity:1;pointer-events:all}
+.modal-box{background:var(--bg2);border:1px solid var(--border-gold);border-radius:16px;width:min(800px,95vw);max-height:90vh;overflow-y:auto;position:relative}
+.modal-header{background:linear-gradient(135deg,#0d1117,#1a1508);border-bottom:1px solid var(--border-gold);padding:16px 20px;display:flex;align-items:center;gap:10px;border-radius:16px 16px 0 0}
+.modal-title{font-family:var(--font-display);font-size:24px;letter-spacing:3px;color:var(--gold-light)}
+.modal-close{margin-left:auto;background:none;border:none;color:var(--text-dim);font-size:20px;cursor:pointer;padding:4px;line-height:1}
+.modal-close:hover{color:var(--red)}
+.modal-body{padding:20px}
+
+/* ── SLOT MACHINE ── */
+.slot-machine{background:radial-gradient(ellipse at top,#2a1200,#0d0800);border:2px solid var(--gold-dim);border-radius:20px;padding:28px;text-align:center;max-width:500px;margin:0 auto;box-shadow:0 0 60px rgba(201,168,76,0.08),inset 0 1px 0 rgba(201,168,76,0.15)}
+.slot-reels{display:flex;gap:12px;justify-content:center;margin:20px 0;padding:16px;background:rgba(0,0,0,0.5);border-radius:14px;border:1px solid rgba(201,168,76,0.1)}
+.slot-reel{width:96px;height:100px;background:linear-gradient(180deg,#040608 0%,#0a0f16 40%,#040608 100%);border:2px solid #1a2a3a;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:46px;overflow:hidden;position:relative;box-shadow:inset 0 0 20px rgba(0,0,0,0.8),0 0 0 1px rgba(255,255,255,0.03)}
+.slot-reel::before,.slot-reel::after{content:'';position:absolute;left:0;right:0;height:36px;z-index:2;pointer-events:none}
+.slot-reel::before{top:0;background:linear-gradient(to bottom,#040608 0%,transparent 100%)}
+.slot-reel::after{bottom:0;background:linear-gradient(to top,#040608 0%,transparent 100%)}
+.slot-reel .reel-content{display:block;line-height:1;transition:transform 0.15s;filter:drop-shadow(0 0 8px rgba(255,255,255,0.3))}
+.slot-reel.spinning{border-color:rgba(201,168,76,0.4);box-shadow:inset 0 0 20px rgba(0,0,0,0.8),0 0 12px rgba(201,168,76,0.15)}
+.slot-reel.spinning .reel-content{animation:reelSpin 0.07s steps(1) infinite}
+.slot-reel.reel-win{border-color:var(--gold)!important;box-shadow:inset 0 0 20px rgba(201,168,76,0.1),0 0 20px rgba(201,168,76,0.4)!important;animation:reelGlow 0.6s ease infinite alternate}
+@keyframes reelSpin{0%{content:'🍒'}10%{content:'💎'}20%{content:'⭐'}30%{content:'🔔'}40%{content:'7️⃣'}50%{content:'🍋'}60%{content:'💰'}70%{content:'🍇'}80%{content:'🎯'}90%{content:'🃏'}100%{content:'🍒'}}
+@keyframes reelGlow{from{box-shadow:inset 0 0 20px rgba(201,168,76,0.1),0 0 15px rgba(201,168,76,0.3)}to{box-shadow:inset 0 0 30px rgba(201,168,76,0.2),0 0 35px rgba(201,168,76,0.6)}}
+.slot-win-line{height:3px;background:linear-gradient(90deg,transparent,#c9a84c,#f0d080,#c9a84c,transparent);margin:4px 0;opacity:0;transition:opacity .3s;border-radius:2px}
+.slot-win-line.active{opacity:1;animation:winLinePulse 0.8s ease infinite}
+@keyframes winLinePulse{0%,100%{opacity:0.6;transform:scaleX(0.95)}50%{opacity:1;transform:scaleX(1.02);filter:drop-shadow(0 0 6px #c9a84c)}}
+.slot-bet-row{display:flex;align-items:center;gap:8px;justify-content:center;margin:12px 0}
+.bet-input{background:rgba(0,0,0,0.5);border:1px solid var(--border);color:var(--text);font-family:var(--font-body);font-size:14px;padding:6px 12px;border-radius:6px;width:100px;text-align:center}
+.bet-preset{background:rgba(0,0,0,0.4);border:1px solid var(--border);color:var(--text-dim);font-family:var(--font-body);font-size:10px;padding:4px 8px;border-radius:4px;cursor:pointer;transition:all .15s}
+.bet-preset:hover{border-color:var(--gold-dim);color:var(--gold-light);background:rgba(201,168,76,0.08)}
+.spin-btn{background:linear-gradient(135deg,#e8c060,#c9a84c,#8a6520);border:none;color:#000;font-family:var(--font-display);font-size:18px;letter-spacing:3px;padding:13px 36px;border-radius:10px;cursor:pointer;transition:all .2s;margin-top:8px;box-shadow:0 4px 20px rgba(201,168,76,0.35),inset 0 1px 0 rgba(255,255,255,0.3)}
+.spin-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 30px rgba(201,168,76,0.5),inset 0 1px 0 rgba(255,255,255,0.3)}
+.spin-btn:active:not(:disabled){transform:translateY(1px);box-shadow:0 2px 10px rgba(201,168,76,0.3)}
+.spin-btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.slot-result{min-height:32px;font-family:var(--font-display);font-size:22px;letter-spacing:2px;margin:10px 0;transition:all .3s}
+.slot-result.win{color:var(--green);text-shadow:0 0 20px rgba(0,230,118,.7),0 0 40px rgba(0,230,118,.3);animation:resultPop .4s cubic-bezier(.17,.67,.3,1.4)}
+.slot-result.lose{color:var(--red);text-shadow:0 0 10px rgba(255,61,79,.4)}
+@keyframes resultPop{0%{transform:scale(0.5);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+.jackpot-display{background:linear-gradient(135deg,#1a0005,#2a0a00);border:1px solid rgba(255,61,79,0.5);border-radius:10px;padding:10px 16px;margin-bottom:16px;box-shadow:0 0 30px rgba(255,61,79,0.1),inset 0 1px 0 rgba(255,61,79,0.2)}
+.jackpot-label{font-size:9px;text-transform:uppercase;letter-spacing:3px;color:#ff6b7a}
+.jackpot-value{font-family:var(--font-display);font-size:30px;color:#ff3d4f;text-shadow:0 0 20px rgba(255,61,79,.6);animation:jackpotFlicker 2.5s ease infinite}
+@keyframes jackpotFlicker{0%,100%{text-shadow:0 0 15px rgba(255,61,79,.4),0 0 30px rgba(255,61,79,.2)}50%{text-shadow:0 0 25px rgba(255,61,79,.8),0 0 50px rgba(255,61,79,.4),0 0 80px rgba(255,61,79,.15)}}
+/* Coin particle */
+@keyframes coinFly{0%{transform:translateY(0) rotate(0deg) scale(1.2);opacity:1}100%{transform:translateY(-160px) rotate(540deg) scale(0);opacity:0}}
+
+/* ── ROULETTE ── */
+#roulette-canvas{display:block;margin:0 auto}
+.roulette-bets{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:12px 0}
+.rbet{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px;cursor:pointer;text-align:center;font-size:11px;transition:all .2s}
+.rbet:hover,.rbet.selected{border-color:var(--gold-dim);background:var(--surface);color:var(--gold-light)}
+.rbet .rbet-name{font-size:12px;margin-bottom:2px}
+.rbet .rbet-odds{font-size:9px;color:var(--text-dim)}
+.roulette-number-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;margin:8px 0}
+.rnum{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:3px 2px;text-align:center;cursor:pointer;font-size:10px;transition:all .15s}
+.rnum.red-num{background:rgba(229,57,53,.2);border-color:rgba(229,57,53,.3)}
+.rnum.black-num{background:rgba(33,33,33,.5);border-color:rgba(100,100,100,.3)}
+.rnum.green-num{background:rgba(67,160,71,.2);border-color:rgba(67,160,71,.3)}
+.rnum:hover,.rnum.selected{transform:scale(1.1);border-color:var(--gold)}
+
+/* ── BLACKJACK ── */
+.bj-table{background:radial-gradient(ellipse at center,#1a4a1a,#0a2a0a);border:2px solid var(--border);border-radius:16px;padding:20px;position:relative;min-height:300px}
+.bj-zone{text-align:center;margin:10px 0}
+.bj-zone-label{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,.4);margin-bottom:8px}
+.cards-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;min-height:80px;align-items:center}
+.playing-card{width:56px;height:78px;background:#fff;border-radius:6px;border:1px solid #ddd;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:18px;font-weight:700;box-shadow:2px 4px 8px rgba(0,0,0,.4);position:relative;transition:transform .3s}
+.playing-card.red-card{color:var(--red)}
+.playing-card.black-card{color:#111}
+.playing-card.face-down{background:linear-gradient(135deg,#1a1a8a,#000080);color:transparent}
+.playing-card.face-down::after{content:'🂠';font-size:30px;color:rgba(255,255,255,.3)}
+.playing-card .card-corner{position:absolute;top:4px;left:5px;font-size:11px;line-height:1}
+.playing-card .card-corner.br{top:auto;left:auto;bottom:4px;right:5px;transform:rotate(180deg)}
+.bj-score{font-family:var(--font-display);font-size:22px;color:var(--gold-light)}
+.bj-actions{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+.bj-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--font-body);font-size:12px;padding:8px 16px;border-radius:6px;cursor:pointer;transition:all .2s}
+.bj-btn:hover:not(:disabled){border-color:var(--gold-dim);color:var(--gold-light)}
+.bj-btn.primary{background:linear-gradient(135deg,var(--gold-dim),#2a1a05);border-color:var(--gold);color:var(--gold-light)}
+.bj-btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* ── POKER ── */
+.poker-table{background:radial-gradient(ellipse at center,#1a2a4a,#0a1520);border:2px solid var(--border);border-radius:20px;padding:20px;position:relative;min-height:400px}
+.poker-pot{text-align:center;margin:8px 0;font-family:var(--font-display);font-size:20px;color:var(--gold-light)}
+.poker-ai-hand{display:flex;gap:4px;justify-content:center;flex-wrap:wrap}
+.player-actions{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.poker-btn{padding:8px 14px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:var(--font-body);font-size:11px;cursor:pointer;transition:all .2s}
+.poker-btn:hover:not(:disabled){border-color:var(--gold-dim);color:var(--gold-light)}
+.poker-btn.fold{border-color:var(--red-dim);color:var(--red)}
+.poker-btn.raise{border-color:var(--green-dim);color:var(--green);background:linear-gradient(135deg,var(--green-dim),transparent)}
+.poker-btn:disabled{opacity:.3;cursor:not-allowed}
+.poker-chips{display:flex;gap:4px;justify-content:center;align-items:center;flex-wrap:wrap;margin:6px 0}
+.chip{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;border:2px solid rgba(255,255,255,.2);cursor:pointer;transition:transform .2s}
+.chip:hover{transform:scale(1.2)}
+.chip.c5{background:var(--chip-red);color:#fff}
+.chip.c25{background:var(--chip-green);color:#fff}
+.chip.c100{background:var(--chip-black);color:#fff;border-color:rgba(255,255,255,.3)}
+.chip.c500{background:#7b1fa2;color:#fff}
+.chip.c1000{background:var(--gold-dim);color:var(--gold-light);border-color:var(--gold)}
+
+/* ── INVESTMENTS ── */
+.invest-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.crypto-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;display:flex;flex-direction:column;gap:8px}
+.ci-header{display:flex;align-items:center;gap:8px}
+.ci-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px}
+.ci-name{font-size:13px;color:var(--text)}
+.ci-symbol{font-size:10px;color:var(--text-dim)}
+.ci-price{font-family:var(--font-display);font-size:20px;color:var(--text)}
+.ci-change{font-size:11px}
+.ci-change.up{color:var(--green)}
+.ci-change.down{color:var(--red)}
+.ci-owned{font-size:10px;color:var(--text-dim)}
+.ci-actions{display:flex;gap:6px}
+.ci-btn{flex:1;padding:6px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text-dim);font-family:var(--font-body);font-size:10px;cursor:pointer;transition:all .2s}
+.ci-btn.buy{border-color:var(--green-dim);color:var(--green)}
+.ci-btn.sell{border-color:var(--red-dim);color:var(--red)}
+.ci-btn:hover{background:var(--surface2)}
+
+/* ── REAL ESTATE ── */
+.property-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.property-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:all .3s}
+.property-card:hover{border-color:var(--gold-dim);transform:translateY(-2px)}
+.property-img{height:80px;display:flex;align-items:center;justify-content:center;font-size:36px}
+.property-info{padding:10px}
+.property-name{font-size:12px;font-weight:500;color:var(--text);margin-bottom:4px}
+.property-price{font-family:var(--font-display);font-size:16px;color:var(--gold-light)}
+.property-income{font-size:10px;color:var(--green)}
+.property-owned{position:absolute;top:6px;right:6px;background:var(--green-dim);border:1px solid var(--green);border-radius:4px;font-size:9px;padding:1px 5px;color:var(--green)}
+
+/* ── RIGHTBAR ── */
+.rb-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px}
+.rb-title{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--text-dim);margin-bottom:8px}
+.news-item{padding:6px 0;border-bottom:1px solid var(--border);font-size:10px;color:var(--text-dim)}
+.news-item:last-child{border-bottom:none}
+.news-item .news-tag{display:inline-block;padding:1px 5px;border-radius:3px;font-size:8px;margin-right:4px;margin-bottom:2px}
+.news-tag.crisis{background:var(--red-dim);color:var(--red)}
+.news-tag.bull{background:var(--green-dim);color:var(--green)}
+.news-tag.event{background:var(--blue-dim);color:var(--blue)}
+.news-tag.casino{background:var(--gold-dim);color:var(--gold-light)}
+.quest-item{padding:6px 0;border-bottom:1px solid var(--border)}
+.quest-item:last-child{border-bottom:none}
+.quest-name{font-size:11px;color:var(--text);margin-bottom:3px}
+.quest-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.quest-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light));transition:width .5s}
+.quest-progress{font-size:9px;color:var(--text-dim);margin-top:2px}
+.leaderboard-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px}
+.leaderboard-row:last-child{border-bottom:none}
+.lb-rank{width:16px;color:var(--text-dim);font-size:10px}
+.lb-rank.gold{color:var(--gold)}
+.lb-name{flex:1;color:var(--text)}
+.lb-value{color:var(--gold-light);font-size:10px}
+.achievement-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ach-item{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px;text-align:center;opacity:.4}
+.ach-item.unlocked{opacity:1;border-color:var(--gold-dim);background:linear-gradient(135deg,var(--surface),#1a1508)}
+.ach-icon{font-size:18px}
+.ach-name{font-size:9px;color:var(--text-dim);margin-top:2px}
+
+/* ── TOASTS ── */
+#toasts{position:fixed;bottom:20px;right:20px;z-index:500;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text);max-width:280px;animation:slideIn .3s ease;box-shadow:var(--shadow-card)}
+.toast.win{border-color:var(--green);background:linear-gradient(135deg,var(--green-dim),var(--surface2))}
+.toast.lose{border-color:var(--red);background:linear-gradient(135deg,var(--red-dim),var(--surface2))}
+.toast.info{border-color:var(--blue);background:linear-gradient(135deg,var(--blue-dim),var(--surface2))}
+.toast.event{border-color:var(--gold);background:linear-gradient(135deg,var(--gold-dim),var(--surface2))}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes fadeOut{to{opacity:0;transform:translateY(10px)}}
+
+/* ── BUTTONS / INPUTS ── */
+.btn{padding:8px 16px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:var(--font-body);font-size:12px;cursor:pointer;transition:all .2s}
+.btn:hover{border-color:var(--gold-dim);color:var(--gold-light)}
+.btn-gold{background:linear-gradient(135deg,var(--gold-dim),#2a1a05);border-color:var(--gold);color:var(--gold-light)}
+.btn-gold:hover{box-shadow:var(--shadow-gold)}
+.input{background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--font-body);font-size:12px;padding:6px 10px;border-radius:6px;width:100%}
+.input:focus{outline:none;border-color:var(--gold-dim)}
+.row{display:flex;gap:8px;align-items:center}
+.label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim)}
+.divider{height:1px;background:var(--border);margin:12px 0}
+.green{color:var(--green)}
+.red{color:var(--red)}
+.gold{color:var(--gold-light)}
+.dim{color:var(--text-dim)}
+.small{font-size:10px}
+.center{text-align:center}
+.mt{margin-top:12px}
+.mb{margin-bottom:12px}
+.flex{display:flex;gap:8px;align-items:center}
+.flex-between{display:flex;justify-content:space-between;align-items:center}
+.text-right{text-align:right}
+select.input option{background:var(--bg2)}
+
+/* ── SPORTS ── */
+.match-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:8px}
+.match-teams{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.team-name{font-size:13px;color:var(--text)}
+.match-vs{font-size:10px;color:var(--text-muted);padding:0 8px}
+.odds-row{display:flex;gap:6px}
+.odd-btn{flex:1;padding:6px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);cursor:pointer;text-align:center;transition:all .2s}
+.odd-btn:hover,.odd-btn.selected{border-color:var(--gold-dim);background:var(--surface)}
+.odd-label{font-size:9px;color:var(--text-dim)}
+.odd-value{font-family:var(--font-display);font-size:16px;color:var(--gold-light)}
+
+/* ── SKILL TREE ── */
+.skill-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+.skill-icon{font-size:18px;width:24px}
+.skill-info{flex:1}
+.skill-name{font-size:12px;color:var(--text)}
+.skill-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:4px}
+.skill-fill{height:100%;border-radius:3px;transition:width .5s}
+.skill-fill.luck{background:linear-gradient(90deg,#9c27b0,#e040fb)}
+.skill-fill.finance{background:linear-gradient(90deg,#1976d2,#42a5f5)}
+.skill-fill.bluff{background:linear-gradient(90deg,#d32f2f,#ef5350)}
+.skill-fill.charm{background:linear-gradient(90deg,#f57c00,#ffb300)}
+.skill-pts{font-size:11px;color:var(--text-dim);white-space:nowrap}
+.skill-upgrade{background:var(--gold-dim);border:1px solid var(--gold);border-radius:4px;font-size:10px;padding:3px 8px;color:var(--gold-light);cursor:pointer;white-space:nowrap}
+.skill-upgrade:hover{background:var(--gold)}
+.skill-upgrade:disabled{opacity:.3;cursor:not-allowed}
+
+/* Animated background */
+.bg-particles{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.particle{position:absolute;width:1px;height:1px;background:var(--gold);border-radius:50%;opacity:0;animation:float linear infinite}
+@keyframes float{0%{transform:translateY(100vh) scale(0);opacity:0}10%{opacity:.6}90%{opacity:.6}100%{transform:translateY(-10vh) scale(1);opacity:0}}
+
+/* Responsive tweaks */
+@media(max-width:1200px){
+  #rightbar{display:none}
+  #app{grid-template-columns:220px 1fr}
+}
+@media(max-width:800px){
+  #app{grid-template-columns:1fr}
+  #sidebar{display:none}
+  .games-grid{grid-template-columns:1fr 1fr}
+  .dash-grid{grid-template-columns:1fr 1fr}
+  .invest-grid,.property-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- Background particles -->
+<div class="bg-particles" id="particles"></div>
+
+<!-- Main layout -->
+<div id="app">
+
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <div class="tb-logo">CASINO<span>EMPIRE</span></div>
+    <div class="tb-stats">
+      <div class="tb-stat">
+        <span class="icon">💵</span>
+        <div><div class="label">Cash</div><div class="value gold" id="tb-cash">$0</div></div>
+      </div>
+      <div class="tb-stat">
+        <span class="icon">🪙</span>
+        <div><div class="label">Jetons</div><div class="value" id="tb-tokens">0</div></div>
+      </div>
+      <div class="tb-stat">
+        <span class="icon">₿</span>
+        <div><div class="label">BTC</div><div class="value" id="tb-btc">0.00</div></div>
+      </div>
+      <div class="tb-stat">
+        <span class="icon">📈</span>
+        <div><div class="label">Passif/h</div><div class="value green" id="tb-passive">$0</div></div>
+      </div>
+      <div class="tb-stat">
+        <span class="icon">⭐</span>
+        <div><div class="label">Niveau</div><div class="value" id="tb-level">1</div></div>
+      </div>
+    </div>
+    <div class="xp-bar-wrap">
+      <div class="xp-label"><span>XP</span><span id="xp-text">0/100</span></div>
+      <div class="xp-bar"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
+    </div>
+    <button class="tb-btn" onclick="saveGame()">💾 SAUVER</button>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="sb-player-card">
+      <div class="flex" style="gap:10px">
+        <div class="player-avatar">🎩</div>
+        <div>
+          <div class="player-name" id="player-name">Joueur</div>
+          <div class="player-title" id="player-title">Novice</div>
+          <div class="player-rep"><div class="rep-stars" id="rep-stars">★☆☆☆☆</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-section-title">Principal</div>
+      <div class="sb-item active" onclick="showView('dashboard')" id="nav-dashboard"><span class="icon">🏠</span><span class="name">Tableau de bord</span></div>
+      <div class="sb-item" onclick="showView('casino')" id="nav-casino"><span class="icon">🎰</span><span class="name">Casino</span><span class="badge gold" id="jackpot-badge">JP!</span></div>
+      <div class="sb-item" onclick="showView('sports')" id="nav-sports"><span class="icon">⚽</span><span class="name">Paris Sportifs</span></div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-section-title">Marchés</div>
+      <div class="sb-item" onclick="showView('crypto')" id="nav-crypto"><span class="icon">📊</span><span class="name">Cryptomonnaies</span></div>
+      <div class="sb-item" onclick="showView('stocks')" id="nav-stocks"><span class="icon">📉</span><span class="name">Bourse</span></div>
+      <div class="sb-item" onclick="showView('realestate')" id="nav-realestate"><span class="icon">🏢</span><span class="name">Immobilier</span></div>
+      <div class="sb-item" onclick="showView('lifestyle')" id="nav-lifestyle"><span class="icon">💎</span><span class="name">Style de Vie</span></div>
+      <div class="sb-item" onclick="showView('loans')" id="nav-loans"><span class="icon">🏦</span><span class="name">Emprunts</span></div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-section-title">Joueur</div>
+      <div class="sb-item" onclick="showView('skills')" id="nav-skills"><span class="icon">🧠</span><span class="name">Compétences</span></div>
+      <div class="sb-item" onclick="showView('achievements')" id="nav-achievements"><span class="icon">🏆</span><span class="name">Succès</span><span class="badge" id="ach-badge"></span></div>
+      <div class="sb-item" onclick="showView('profile')" id="nav-profile"><span class="icon">👤</span><span class="name">Profil</span></div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div id="main">
+
+    <!-- DASHBOARD -->
+    <div class="view active" id="view-dashboard">
+      <div class="card-title" style="font-family:var(--font-display);font-size:22px;letter-spacing:3px;color:var(--gold-light);margin-bottom:16px">
+        🏠 TABLEAU DE BORD <span style="font-size:11px;color:var(--text-dim);font-family:var(--font-body);letter-spacing:1px;margin-left:auto" id="clock"></span>
+      </div>
+      <div class="dash-grid" id="dash-grid"></div>
+      <div class="chart-wrap">
+        <div class="chart-header">
+          <div class="chart-title">Évolution du patrimoine</div>
+          <div class="chart-tabs">
+            <div class="chart-tab active" onclick="setWealthChartPeriod('1h',this)">1H</div>
+            <div class="chart-tab" onclick="setWealthChartPeriod('24h',this)">24H</div>
+            <div class="chart-tab" onclick="setWealthChartPeriod('7d',this)">7J</div>
+          </div>
+        </div>
+        <canvas id="wealthChart" height="140"></canvas>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="card">
+          <div class="card-title" style="font-size:14px">📊 Marché en bref</div>
+          <div id="market-brief"></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="font-size:14px">🎯 Quêtes actives</div>
+          <div id="active-quests-mini"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CASINO -->
+    <div class="view" id="view-casino">
+      <div class="card-title" style="font-family:var(--font-display);font-size:22px;letter-spacing:3px;color:var(--gold-light);margin-bottom:16px">🎰 CASINO IMPERIAL</div>
+      <div style="background:linear-gradient(135deg,#1a0a00,#0d0a00);border:1px solid var(--border-gold);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;display:flex;gap:16px;align-items:center">
+        <div>
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--gold-dim)">Jackpot Progressif</div>
+          <div style="font-family:var(--font-display);font-size:28px;color:var(--gold-light);text-shadow:0 0 20px rgba(201,168,76,.4)" id="jackpot-display">$0</div>
+        </div>
+        <div style="flex:1"></div>
+        <div style="text-align:right">
+          <div style="font-size:9px;color:var(--text-dim)">Vos jetons</div>
+          <div style="font-family:var(--font-display);font-size:20px;color:var(--purple)" id="tokens-display">0</div>
+        </div>
+        <button class="btn btn-gold" onclick="exchangeTokens()">💱 Convertir $→🪙</button>
+      </div>
+      <div class="games-grid">
+        <div class="game-card" onclick="openGame('slots')"><div class="gc-rtp">RTP 95%</div><div class="gc-icon">🎰</div><div class="gc-name">MACHINES À SOUS</div><div class="gc-desc">Jackpots progressifs • Bonus rounds</div><div class="gc-jackpot" id="mini-jackpot">JACKPOT: $0</div></div>
+        <div class="game-card" onclick="openGame('roulette')"><div class="gc-rtp">RTP 97.3%</div><div class="gc-icon">🎡</div><div class="gc-name">ROULETTE</div><div class="gc-desc">Européenne • Mise 1$ – 50 000$</div></div>
+        <div class="game-card" onclick="openGame('blackjack')"><div class="gc-rtp">RTP 99.5%</div><div class="gc-icon">🃏</div><div class="gc-name">BLACKJACK</div><div class="gc-desc">Stratégie optimale • Doubling</div></div>
+        <div class="game-card" onclick="openGame('poker')"><div class="gc-rtp">RTP Variable</div><div class="gc-icon">♠️</div><div class="gc-name">POKER</div><div class="gc-desc">Texas Hold'em • IA adversaire</div></div>
+        <div class="game-card" onclick="openGame('scratch')"><div class="gc-rtp">RTP 92%</div><div class="gc-icon">🎫</div><div class="gc-name">GRATTAGE</div><div class="gc-desc">Gains instantanés • 5 grilles</div></div>
+        <div class="game-card" onclick="openGame('keno')"><div class="gc-rtp">RTP 91%</div><div class="gc-icon">🔢</div><div class="gc-name">KENO</div><div class="gc-desc">Choisis 1–10 numéros</div></div>
+        <div class="game-card" onclick="openGame('plinko')" style="border-color:rgba(79,195,247,.25);background:linear-gradient(135deg,var(--surface),#050e1a)"><div class="gc-rtp">RTP 94%</div><div class="gc-icon">🔵</div><div class="gc-name">PLINKO</div><div class="gc-desc">Gravité réelle • Multiplicateurs ×0.2 – ×1000</div></div>
+      </div>
+      <div class="card mt">
+        <div class="card-title" style="font-size:14px">📊 Statistiques Casino</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px" id="casino-stats"></div>
+      </div>
+    </div>
+
+    <!-- SPORTS -->
+    <div class="view" id="view-sports">
+      <div class="card-title" style="font-family:var(--font-display);font-size:22px;letter-spacing:3px;color:var(--gold-light);margin-bottom:16px">⚽ PARIS SPORTIFS</div>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px">
+        <div>
+          <div class="card mb">
+            <div class="card-title" style="font-size:14px">Matchs disponibles</div>
+            <div id="matches-list"></div>
+          </div>
+        </div>
+        <div>
+          <div class="card mb">
+            <div class="card-title" style="font-size:14px">🎯 Mon Pari</div>
+            <div id="bet-slip"></div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="font-size:14px">📜 Historique</div>
+            <div id="sports-history" style="font-size:11px;color:var(--text-dim)"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CRYPTO -->
+    <div class="view" id="view-crypto">
+      <div class="card-title" style="font-family:var(--font-display);font-size:22px;letter-spacing:3px;color:var(--gold-light);margin-bottom:16px">₿ MARCHÉ CRYPTO</div>
+      <div class="chart-wrap mb">
+        <div class="chart-header">
+          <div class="chart-title" id="crypto-chart-title">BTC — Prix en temps réel</div>
+          <div class="chart-tabs" id="crypto-tabs"></div>
+        </div>
+        <canvas id="cryptoChart" height="160"></canvas>
+      </div>
+      <div class="invest-grid" id="crypto-grid"></div>
+    </div>
+
+    <!-- STOCKS -->
+    <div class="view" id="view-stocks">
+      <div class="card-title" style="font-family:var(--font-display);font-size:22px;letter-spacing:3px;color:var(--gold-light);margin-bottom:16px">📉 BOURSE VIRTUELLE</div>
+      <div class="chart-wrap mb">
+        <div class="chart-header">
+          <div class="chart-title" id="stock-chart-title">PORTFOLIO — Valeur totale</div>
+          <div class="chart-tabs" id="stock-tabs"></div>
+        </div>
+        <canvas id="stockChart" height="160"></canvas>
+      </div>
+      <div id="stocks-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
+    </div>
+
+    <!-- REAL ESTATE -->
+    <div class="view" id="view-realestate">
+      <div class="card-title" style="font-family:var(--font-display);font-size:22px;letter-spacing:3px;color:var(--gold-light);margin-bottom:16px">🏢 IMMOBILIER</div>
+      <div class="card mb" style="background:linear-gradient(135deg,var(--surface),#0a1a0a);border-color:#1a3a1a">
+        <div class="flex-between">
+          <div><div class="label">Revenus passifs totaux/h</div><div style="font-family:var(--font-display);font-size:24px;color:var(--green)" id="total-passive">$0</div></div>
+          <div style="text-align:right"><div class="label">Valeur portfolio</div><div style="font-family:var(--font-display);font-size:24px;color:var(--gold-light)" id="total-restate">$0</div></div>
+        </div>
+      </div>
+      <div class="property-grid" id="property-grid"></div>
+    </div>
+
+    <!-- SKILLS -->
+    <div class="view" id="view-skills">
+      <div class="card-title" style="font-family:var(--font-display);font-size:22px;letter-spacing:3px;color:var(--gold-light);margin-bottom:16px">🧠 COMPÉTENCES</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="card">
+          <div class="card-title" style="font-size:14px">Arbre de compétences</div>
+          <div class="flex-between mb"><span class="label">Points disponibles</span><span class="gold" id="skill-pts-display" style="font-family:var(--font-display);font-size:18px">0</span></div>
+          <div id="skill-tree"></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="font-size:14px">Bonus actifs</div>
+          <div id="skill-bonuses"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACHIEVEMENTS -->
+    <div class="view" id="view-achievements">
+      <div class="card-title" style="font-family:var(--font-display);font-size:22px;letter-spacing:3px;color:var(--gold-light);margin-bottom:16px">🏆 SUCCÈS</div>
+      <div id="achievements-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px"></div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="view" id="view-profile">
+      <div class="card-title" style="font-family:var(--font-display);font-size:22px;letter-spacing:3px;color:var(--gold-light);margin-bottom:16px">👤 PROFIL</div>
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px">
+        <div class="card" style="text-align:center">
+          <div style="font-size:60px;margin-bottom:12px">🎩</div>
+          <div style="font-family:var(--font-serif);font-size:20px;color:var(--gold-light)" id="profile-name">—</div>
+          <div class="dim small mt" id="profile-title">—</div>
+          <div class="divider"></div>
+          <div id="profile-stats"></div>
+          <div class="mt">
+            <input class="input" id="name-input" placeholder="Changer de nom..." style="margin-bottom:6px">
+            <button class="btn btn-gold" onclick="changeName()" style="width:100%">Changer</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="font-size:14px">Historique complet</div>
+          <div id="full-history" style="font-size:11px;color:var(--text-dim);max-height:400px;overflow-y:auto"></div>
+        </div>
+      </div>
+      <div class="card mt">
+        <div class="card-title" style="font-size:14px">🌍 Classement mondial (simulé)</div>
+        <div id="leaderboard-full"></div>
+      </div>
+    </div>
+
+    <!-- LIFESTYLE -->
+    <div class="view" id="view-lifestyle">
+      <div class="card-title" style="font-family:var(--font-display);font-size:22px;letter-spacing:3px;color:var(--gold-light);margin-bottom:16px">💎 STYLE DE VIE</div>
+      <div class="card mb" style="background:linear-gradient(135deg,var(--surface),#12080a);border-color:#3a1020">
+        <div style="font-size:11px;color:var(--text-dim)">Achetez des biens de luxe et misez-les à la roulette pour des gains multipliés!</div>
+        <div style="margin-top:8px;font-size:11px">Biens possédés: <span id="lifestyle-count" style="color:var(--gold-light)">0</span> — Valeur totale: <span id="lifestyle-value" style="color:var(--gold-light)">$0</span></div>
+      </div>
+      <div id="lifestyle-grid"></div>
+    </div>
+
+    <!-- LOANS -->
+    <div class="view" id="view-loans">
+      <div class="card-title" style="font-family:var(--font-display);font-size:22px;letter-spacing:3px;color:var(--gold-light);margin-bottom:16px">🏦 EMPRUNTS</div>
+      <div id="loans-summary" class="card mb" style="background:linear-gradient(135deg,var(--surface),#060e18)"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div>
+          <div class="card-title" style="font-size:14px">💰 Offres disponibles</div>
+          <div id="loan-offers"></div>
+        </div>
+        <div>
+          <div class="card-title" style="font-size:14px">📋 Mes emprunts actifs</div>
+          <div id="active-loans"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+
+  <!-- RIGHTBAR -->
+  <div id="rightbar">
+    <div class="rb-section">
+      <div class="rb-title">📰 Actualités marché</div>
+      <div id="news-feed"></div>
+    </div>
+    <div class="rb-section">
+      <div class="rb-title">🎯 Quêtes</div>
+      <div id="quests-list"></div>
+    </div>
+    <div class="rb-section">
+      <div class="rb-title">🏆 Classement</div>
+      <div id="leaderboard-mini"></div>
+    </div>
+    <div class="rb-section">
+      <div class="rb-title">🎖 Succès récents</div>
+      <div class="achievement-grid" id="recent-achievements"></div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- GAME MODAL -->
+<div id="game-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Jeu</div>
+      <button class="modal-close" onclick="closeGame()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div id="toasts"></div>
+
+<script>
+// ════════════════════════════════════════════════
+//  GAME STATE
+// ════════════════════════════════════════════════
+const GS = {
+  cash: 1500,
+  tokens: 100,
+  level: 1,
+  xp: 0,
+  xpNext: 100,
+  reputation: 1,
+  skillPoints: 3,
+  skills: { luck: 1, finance: 1, bluff: 1, charm: 1 },
+  crypto: {
+    BTC: { held: 0, price: 42000, history: [] },
+    ETH: { held: 0, price: 2800, history: [] },
+    SOL: { held: 0, price: 180, history: [] },
+    DOGE: { held: 0, price: 0.12, history: [] },
+    CEX: { held: 0, price: 8, history: [] }
+  },
+  stocks: {
+    'TechCorp': { held: 0, price: 320, history: [], div: 0.02 },
+    'LuxHotels': { held: 0, price: 185, history: [], div: 0.035 },
+    'CasinoCo': { held: 0, price: 95, history: [], div: 0.05 },
+    'EnergyX': { held: 0, price: 67, history: [], div: 0.028 },
+    'FinBank': { held: 0, price: 440, history: [], div: 0.015 }
+  },
+  properties: {},
+  loans: [],           // { id, amount, remaining, rate, monthlyPayment, taken }
+  lifestyle: {},       // { car1: true, ... }
+  jackpot: 50000,
+  casinoStats: { totalPlayed: 0, totalWon: 0, totalLost: 0, biggestWin: 0, spinsTotal: 0 },
+  sportsHistory: [],
+  history: [],
+  news: [],
+  quests: [],
+  achievements: {},
+  wealthHistory: [],
+  economy: { inflation: 1.0, trend: 'stable', eventActive: null },
+  lastSave: Date.now(),
+  offlineEarnings: 0,
+  dailyChallenges: { lastReset: 0, challenges: [] }
+};
+
+// ════════════════════════════════════════════════
+//  CONSTANTS
+// ════════════════════════════════════════════════
+const PROPERTIES = [
+  { id:'apt1', name:'Studio Paris', icon:'🏠', price:80000, income:400, type:'apt', desc:'Petit appartement, revenu stable' },
+  { id:'apt2', name:'Appartement Luxe', icon:'🏙️', price:350000, income:1800, type:'apt', desc:'Centre-ville, haut rendement' },
+  { id:'hotel1', name:'Hôtel 3★', icon:'🏨', price:1200000, income:8000, type:'hotel', desc:'Hôtel de ville, clientèle régulière' },
+  { id:'hotel2', name:'Palace 5★', icon:'🏰', price:8000000, income:60000, type:'hotel', desc:'Luxe absolu, revenus royaux' },
+  { id:'casino1', name:'Casino Local', icon:'🎰', price:5000000, income:40000, type:'casino', desc:'Casino de quartier, bonne fréquentation' },
+  { id:'casino2', name:'Méga Casino', icon:'🏯', price:50000000, income:500000, type:'casino', desc:'Empire du jeu, jackpots monstre' },
+  { id:'crypto_farm', name:'Ferme Mining', icon:'⛏️', price:200000, income:2500, type:'tech', desc:'Mine des cryptos automatiquement' },
+  { id:'penthouse', name:'Penthouse NYC', icon:'🌆', price:3000000, income:15000, type:'apt', desc:'Vue panoramique, standing ultime' }
+];
+
+const LIFESTYLE_ITEMS = [
+  // Véhicules
+  { id:'scooter',   name:'Scooter',              icon:'🛵',  price:3000,          cat:'véhicule',   desc:'Pratique pour la ville' },
+  { id:'bike',      name:'Moto Sportive',         icon:'🏍️',  price:12000,         cat:'véhicule',   desc:'Kawasaki Ninja — rapide et stylée' },
+  { id:'car1',      name:'BMW Série 3',           icon:'🚗',  price:45000,         cat:'véhicule',   desc:'Berline premium, confort absolu' },
+  { id:'car2',      name:'Porsche 911',           icon:'🏎️',  price:130000,        cat:'véhicule',   desc:'Sportive légendaire' },
+  { id:'car3',      name:'Ferrari SF90',          icon:'🔴',  price:550000,        cat:'véhicule',   desc:'Supercar hybride 1000cv' },
+  { id:'car4',      name:'Bugatti Chiron',        icon:'🟣',  price:3500000,       cat:'véhicule',   desc:'1500cv — la voiture ultime' },
+  { id:'car5',      name:'Rolls-Royce Phantom',  icon:'⚫',  price:650000,        cat:'véhicule',   desc:'Le summum du luxe automobile' },
+  { id:'tank',      name:'Tank Militaire',        icon:'🪖',  price:8000000,       cat:'véhicule',   desc:'Pour le flex absolu' },
+  // Nautique
+  { id:'jetski',    name:'Jet-Ski',               icon:'💦',  price:18000,         cat:'nautique',   desc:'Adrénaline garantie' },
+  { id:'yacht1',    name:'Yacht 20m',             icon:'⛵',  price:800000,        cat:'nautique',   desc:'Navigation côtière, 8 invités' },
+  { id:'yacht2',    name:'Superyacht 50m',        icon:'🛥️',  price:8000000,       cat:'nautique',   desc:'Mega-yacht avec hélipad' },
+  { id:'submarine', name:'Sous-marin Privé',      icon:'🤿',  price:50000000,      cat:'nautique',   desc:'Explorez les abysses' },
+  // Aviation
+  { id:'parachute', name:'Parachute de luxe',     icon:'🪂',  price:5000,          cat:'aviation',   desc:'Style même en chute libre' },
+  { id:'helicopter',name:'Hélicoptère',           icon:'🚁',  price:2000000,       cat:'aviation',   desc:'Évitez les embouteillages' },
+  { id:'jet',       name:'Jet Privé G550',        icon:'✈️',  price:5000000,       cat:'aviation',   desc:'Paris-NY en 7h' },
+  { id:'jet2',      name:'Airbus A380 Privé',     icon:'🛫',  price:400000000,     cat:'aviation',   desc:'777 passagers, 0 partage' },
+  { id:'rocket',    name:'Fusée SpaceX',          icon:'🚀',  price:10000000000,   cat:'aviation',   desc:'Pour aller faire un tour sur Mars' },
+  // Luxe & accessoires
+  { id:'watch1',    name:'Rolex Submariner',      icon:'⌚',  price:15000,         cat:'luxe',       desc:'Montre iconique en acier' },
+  { id:'watch2',    name:'Patek Philippe',        icon:'🕰️',  price:200000,        cat:'luxe',       desc:'Pièce de collection ultra-rare' },
+  { id:'diamond',   name:'Diamant 10 carats',     icon:'💎',  price:500000,        cat:'luxe',       desc:'VVS1 — clarté parfaite' },
+  { id:'crown',     name:'Couronne en or',        icon:'👑',  price:1200000,       cat:'luxe',       desc:'Pour les vrais rois' },
+  { id:'suit',      name:'Costume sur mesure',    icon:'🤵',  price:8000,          cat:'luxe',       desc:'Savile Row, London' },
+  { id:'bag',       name:'Sac Hermès Birkin',     icon:'👜',  price:35000,         cat:'luxe',       desc:'Liste d\'attente de 5 ans' },
+  { id:'art',       name:'Tableau Basquiat',      icon:'🎨',  price:12000000,      cat:'luxe',       desc:'Œuvre d\'art majeure' },
+  // Résidences
+  { id:'apt',       name:'Studio Paris',          icon:'🏠',  price:150000,        cat:'résidence',  desc:'Pied-à-terre dans le 8ème' },
+  { id:'villa',     name:'Villa Côte d\'Azur',    icon:'🏖️',  price:2500000,       cat:'résidence',  desc:'Vue mer, piscine, 8 chambres' },
+  { id:'chalet',    name:'Chalet Courchevel',     icon:'⛷️',  price:3500000,       cat:'résidence',  desc:'Domaine skiable privé' },
+  { id:'palace',    name:'Palais de Versailles',  icon:'🏰',  price:500000000,     cat:'résidence',  desc:'Copie exacte — 700 pièces' },
+  { id:'island',    name:'Île Privée',            icon:'🏝️',  price:25000000,      cat:'résidence',  desc:'Votre propre paradis' },
+  { id:'moon',      name:'Terrain sur la Lune',   icon:'🌕',  price:1000000000,    cat:'résidence',  desc:'12 hectares, vue imprenable' },
+  // Ultra-prestige
+  { id:'football',  name:'Club de Foot PSG',      icon:'⚽',  price:4000000000,    cat:'prestige',   desc:'Propriétaire d\'un club pro' },
+  { id:'casino_b',  name:'Casino de Monaco',      icon:'🎰',  price:15000000000,   cat:'prestige',   desc:'La banque vous appartient' },
+  { id:'country',   name:'Acheter un pays',       icon:'🗺️',  price:100000000000,  cat:'prestige',   desc:'Vous êtes le nouveau souverain' },
+  { id:'planet',    name:'Planète habitable',     icon:'🌍',  price:1000000000000, cat:'prestige',   desc:'8 milliards de locataires' },
+];
+
+const LOAN_OFFERS = [
+  { id:'micro',   name:'Micro-crédit',    amount:1000,    rate:0.15, months:6,  icon:'💵' },
+  { id:'perso',   name:'Prêt Personnel',  amount:10000,   rate:0.12, months:12, icon:'🏦' },
+  { id:'auto',    name:'Crédit Auto',     amount:50000,   rate:0.08, months:24, icon:'🚗' },
+  { id:'immo',    name:'Prêt Immobilier', amount:250000,  rate:0.05, months:60, icon:'🏠' },
+  { id:'corpo',   name:'Prêt Corporate',  amount:1000000, rate:0.07, months:36, icon:'🏢' },
+  { id:'shark',   name:'Prêt Usurier',    amount:5000,    rate:0.50, months:3,  icon:'🦈', warning:'Taux prédateur!' },
+];
+
+const ACHIEVEMENTS_DEF = [
+  { id:'first_win', icon:'🎉', name:'Premier Gain', desc:'Gagner pour la 1ère fois', unlocked:false },
+  { id:'millionaire', icon:'💰', name:'Millionnaire', desc:'Avoir 1 000 000$', unlocked:false },
+  { id:'jackpot', icon:'🎰', name:'Jackpot!', desc:'Gagner le jackpot', unlocked:false },
+  { id:'investor', icon:'📈', name:'Investisseur', desc:'Posséder 3 cryptos', unlocked:false },
+  { id:'landlord', icon:'🏠', name:'Propriétaire', desc:'Acheter 1 bien', unlocked:false },
+  { id:'high_roller', icon:'🎩', name:'Haut Rouleau', desc:'Parier 100 000$ en une fois', unlocked:false },
+  { id:'poker_face', icon:'♠️', name:'Poker Face', desc:'Gagner 5 mains de poker', unlocked:false },
+  { id:'survivor', icon:'💀', name:'Survivant', desc:'Survivre à une crise éco', unlocked:false },
+  { id:'level10', icon:'⭐', name:'Vétéran', desc:'Atteindre niveau 10', unlocked:false },
+  { id:'blackjack_nat', icon:'🃏', name:'Naturel!', desc:'Blackjack naturel', unlocked:false },
+  { id:'crypto_whale', icon:'🐋', name:'Whale Crypto', desc:'Posséder 1 BTC', unlocked:false },
+  { id:'spin100', icon:'🔄', name:'Addict', desc:'100 tours de machine', unlocked:false }
+];
+
+const QUESTS_DEF = [
+  { id:'earn1k', name:'Premiers Gains', target:'cash', value:10000, reward:{xp:50,tokens:20}, desc:'Accumuler 10 000$' },
+  { id:'earn100k', name:'Centième Millier', target:'cash', value:100000, reward:{xp:200,tokens:100}, desc:'Accumuler 100 000$' },
+  { id:'invest_crypto', name:'Crypto Curieux', target:'crypto_any', value:1, reward:{xp:80,tokens:30}, desc:'Acheter une crypto' },
+  { id:'buy_property', name:'Premier Bien', target:'property_count', value:1, reward:{xp:150,cash:5000}, desc:'Acheter un bien immobilier' },
+  { id:'spin50', name:'Roulades', target:'spins', value:50, reward:{xp:100,tokens:50}, desc:'50 tours de machine à sous' },
+  { id:'win_sports', name:'Parieur', target:'sports_wins', value:3, reward:{xp:120,cash:2000}, desc:'Gagner 3 paris sportifs' },
+];
+
+const SPORTS_TEAMS = [
+  ['PSG','Lyon'],['Real Madrid','Barcelona'],['Man City','Liverpool'],
+  ['Bayern','Dortmund'],['Juventus','Milan'],['Chelsea','Arsenal'],
+  ['Marseille','Monaco'],['Atletico','Valencia'],['Porto','Benfica']
+];
+
+const SLOT_SYMBOLS = ['🍋','🍒','🍇','⭐','💎','🔔','🎯','7️⃣','💰','🃏'];
+const SLOT_WEIGHTS = [20,18,15,12,8,8,6,4,3,2]; // lower = rarer
+const SLOT_PAYOUTS = { // multiplier of bet
+  '7️⃣7️⃣7️⃣':500,'💰💰💰':200,'💎💎💎':100,'🎯🎯🎯':50,
+  '⭐⭐⭐':25,'🔔🔔🔔':15,'🍇🍇🍇':10,'🍒🍒🍒':6,'🍋🍋🍋':4,'🃏🃏🃏':30,
+  'any3star':8,'pair_7':3,'pair_money':2
+};
+
+const CRYPTO_ICONS = { BTC:'₿', ETH:'Ξ', SOL:'◎', DOGE:'Ð', CEX:'⚡' };
+const CRYPTO_COLORS = { BTC:'#f7931a', ETH:'#627eea', SOL:'#9945ff', DOGE:'#c3a634', CEX:'#00c6ff' };
+const STOCK_ICONS = { 'TechCorp':'💻', 'LuxHotels':'🏨', 'CasinoCo':'🎰', 'EnergyX':'⚡', 'FinBank':'🏦' };
+
+// ════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════
+function init() {
+  loadGame();
+  initParticles();
+  initQuests();
+  initAchievements();
+  initLeaderboard();
+  initNews();
+  initMatches();
+  startTicks();
+  renderAll();
+  offlineEarnings();
+  checkDailyChallenges();
+}
+
+function renderAll() {
+  updateTopbar();
+  renderDashboard();
+  renderCasino();
+  renderCrypto();
+  renderStocks();
+  renderRealEstate();
+  renderSkills();
+  renderAchievements();
+  renderRightbar();
+  renderProfile();
+}
+
+// ════════════════════════════════════════════════
+//  SAVE / LOAD
+// ════════════════════════════════════════════════
+function saveGame() {
+  GS.lastSave = Date.now();
+  localStorage.setItem('casino_empire_v3', JSON.stringify(GS));
+  toast('💾 Partie sauvegardée!', 'info');
+}
+
+function loadGame() {
+  const s = localStorage.getItem('casino_empire_v3');
+  if (!s) { initDefaultHistory(); return; }
+  try {
+    const d = JSON.parse(s);
+    Object.assign(GS, d);
+    // Ensure new fields exist
+    if (!GS.skills) GS.skills = { luck:1, finance:1, bluff:1, charm:1 };
+    if (!GS.skillPoints) GS.skillPoints = 0;
+    if (!GS.economy) GS.economy = { inflation:1.0, trend:'stable', eventActive:null };
+    if (!GS.loans) GS.loans = [];
+    if (!GS.lifestyle) GS.lifestyle = {};
+  } catch(e) { initDefaultHistory(); }
+}
+
+function initDefaultHistory() {
+  // Seed price histories
+  for (const [key, asset] of Object.entries(GS.crypto)) {
+    asset.history = generateHistory(asset.price, 50, 0.03);
+  }
+  for (const [key, stock] of Object.entries(GS.stocks)) {
+    stock.history = generateHistory(stock.price, 50, 0.02);
+  }
+  GS.wealthHistory = [{ t: Date.now(), v: GS.cash }];
+}
+
+function generateHistory(base, n, volatility) {
+  const arr = [];
+  let v = base * (0.7 + Math.random() * 0.6);
+  for (let i = 0; i < n; i++) {
+    v = Math.max(0.001, v * (1 + (Math.random() - 0.5) * volatility * 2));
+    arr.push(parseFloat(v.toFixed(4)));
+  }
+  arr.push(base);
+  return arr;
+}
+
+// ════════════════════════════════════════════════
+//  TICKS
+// ════════════════════════════════════════════════
+function startTicks() {
+  setInterval(tickMarkets, 3000);
+  setInterval(tickPassive, 5000);
+  setInterval(tickEvents, 30000);
+  setInterval(tickJackpot, 1000);
+  setInterval(tickClock, 1000);
+  setInterval(() => { if(Math.random()<0.1) addNews(); }, 8000);
+  setInterval(autoSave, 60000);
+  setInterval(updateWealthHistory, 10000);
+}
+
+function tickClock() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('fr-FR');
+}
+
+function tickMarkets() {
+  const eco = GS.economy;
+  for (const [key, asset] of Object.entries(GS.crypto)) {
+    const base_vol = 0.04 + (GS.skills.luck - 1) * 0.003;
+    let change = (Math.random() - 0.48) * base_vol;
+    if (eco.trend === 'bull') change += 0.02;
+    if (eco.trend === 'bear') change -= 0.02;
+    if (eco.eventActive === 'crypto_crash') change -= 0.06;
+    if (eco.eventActive === 'bull_run') change += 0.05;
+    asset.price = Math.max(0.001, asset.price * (1 + change));
+    asset.history.push(parseFloat(asset.price.toFixed(4)));
+    if (asset.history.length > 200) asset.history.shift();
+  }
+  for (const [key, stock] of Object.entries(GS.stocks)) {
+    let change = (Math.random() - 0.49) * 0.025;
+    if (eco.trend === 'bull') change += 0.01;
+    if (eco.trend === 'bear') change -= 0.015;
+    stock.price = Math.max(0.01, stock.price * (1 + change));
+    stock.history.push(parseFloat(stock.price.toFixed(2)));
+    if (stock.history.length > 200) stock.history.shift();
+  }
+  refreshMarkets();
+}
+
+function tickPassive() {
+  let passive = 0;
+  // Property income (per hour, tick every 5s = /720)
+  for (const [id, owned] of Object.entries(GS.properties)) {
+    const prop = PROPERTIES.find(p => p.id === id);
+    if (prop && owned) {
+      passive += prop.income / 720;
+    }
+  }
+  // Stock dividends
+  for (const [key, stock] of Object.entries(GS.stocks)) {
+    if (stock.held > 0) passive += stock.held * stock.price * stock.div / (365 * 24 * 12);
+  }
+  if (passive > 0) {
+    GS.cash += passive;
+    updateTopbar();
+  }
+  // Loan repayments — debit every 5s proportional to monthly payment (1 month = ~30 days = 720 ticks/h * 24 * 30)
+  if (GS.loans && GS.loans.length > 0) {
+    const ticksPerMonth = 720 * 24 * 30;
+    let totalDebit = 0;
+    GS.loans = GS.loans.filter(loan => {
+      if (loan.remaining <= 0) return false;
+      const debit = loan.monthlyPayment / ticksPerMonth;
+      const actual = Math.min(debit, loan.remaining);
+      GS.cash -= actual;
+      loan.remaining -= actual;
+      totalDebit += actual;
+      return loan.remaining > 0.01;
+    });
+    if (totalDebit > 0) updateTopbar();
+  }
+  document.getElementById('tb-passive').textContent = '$' + formatNum(getHourlyPassive());
+}
+
+function getHourlyPassive() {
+  let passive = 0;
+  for (const [id, owned] of Object.entries(GS.properties)) {
+    const prop = PROPERTIES.find(p => p.id === id);
+    if (prop && owned) passive += prop.income;
+  }
+  for (const [key, stock] of Object.entries(GS.stocks)) {
+    if (stock.held > 0) passive += stock.held * stock.price * stock.div / (365 * 24);
+  }
+  return passive;
+}
+
+function tickJackpot() {
+  GS.jackpot += Math.random() * 15 + 5;
+  const el = document.getElementById('jackpot-display');
+  const mini = document.getElementById('mini-jackpot');
+  if (el) el.textContent = '$' + formatNum(GS.jackpot);
+  if (mini) mini.textContent = 'JACKPOT: $' + formatNum(GS.jackpot);
+}
+
+function tickEvents() {
+  if (Math.random() < 0.15) {
+    const events = [
+      { id:'bull_run', label:'🚀 Bull Run Crypto!', type:'bull', duration:60000, effect: () => { GS.economy.trend='bull'; } },
+      { id:'bear_market', label:'📉 Bear Market', type:'crisis', duration:45000, effect: () => { GS.economy.trend='bear'; } },
+      { id:'crypto_crash', label:'💥 Crash Crypto!', type:'crisis', duration:20000, effect: () => { GS.economy.eventActive='crypto_crash'; } },
+      { id:'regulatory', label:'⚖️ Régulation gouvernementale', type:'event', duration:30000, effect: () => { GS.economy.eventActive='regulatory'; } },
+      { id:'bull_run2', label:'📈 Boom du marché boursier!', type:'bull', duration:60000, effect: () => { GS.economy.trend='bull'; } },
+    ];
+    const ev = events[Math.floor(Math.random()*events.length)];
+    GS.economy.eventActive = ev.id;
+    ev.effect();
+    toast(`⚡ ÉVÉNEMENT: ${ev.label}`, 'event');
+    addNews(ev.label, ev.type);
+    checkAchievement('survivor', ev.type === 'crisis' && GS.cash > 0);
+    setTimeout(() => {
+      GS.economy.trend = 'stable';
+      GS.economy.eventActive = null;
+    }, ev.duration);
+  }
+}
+
+function tickChallenges() {
+  // auto-check quests
+  checkQuestProgress();
+}
+
+function updateWealthHistory() {
+  const total = getTotalWealth();
+  GS.wealthHistory.push({ t: Date.now(), v: total });
+  if (GS.wealthHistory.length > 500) GS.wealthHistory.shift();
+  renderWealthChart();
+}
+
+function autoSave() { saveGame(); }
+
+function offlineEarnings() {
+  const elapsed = (Date.now() - GS.lastSave) / 3600000; // hours
+  if (elapsed > 0.5) {
+    const hourly = getHourlyPassive();
+    const earned = hourly * Math.min(elapsed, 24); // cap at 24h
+    if (earned > 0) {
+      GS.cash += earned;
+      GS.offlineEarnings = earned;
+      toast(`💤 Revenus hors ligne: +$${formatNum(earned)} (${elapsed.toFixed(1)}h)`, 'info');
+    }
+  }
+}
+
+// ════════════════════════════════════════════════
+//  UI NAVIGATION
+// ════════════════════════════════════════════════
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  const nav = document.getElementById('nav-' + id);
+  if (nav) nav.classList.add('active');
+  // lazy render
+  if (id === 'crypto') renderCryptoChart('BTC');
+  if (id === 'stocks') renderStockChart();
+  if (id === 'dashboard') renderDashboard();
+  if (id === 'profile') renderProfile();
+  if (id === 'lifestyle') renderLifestyle();
+  if (id === 'loans') renderLoans();
+}
+
+// ════════════════════════════════════════════════
+//  FORMAT
+// ════════════════════════════════════════════════
+function formatNum(n, decimals = 0) {
+  if (n >= 1e9) return (n/1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return (n/1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(decimals > 0 ? decimals : 1) + 'K';
+  return n.toFixed(decimals);
+}
+
+function fmtPrice(n) {
+  if (n >= 1000) return '$' + formatNum(n, 2);
+  if (n >= 1) return '$' + n.toFixed(2);
+  return '$' + n.toFixed(4);
+}
+
+// ════════════════════════════════════════════════
+//  TOPBAR UPDATE
+// ════════════════════════════════════════════════
+function updateTopbar() {
+  document.getElementById('tb-cash').textContent = '$' + formatNum(GS.cash, 2);
+  document.getElementById('tb-tokens').textContent = Math.floor(GS.tokens);
+  document.getElementById('tb-btc').textContent = GS.crypto.BTC.held.toFixed(4);
+  document.getElementById('tb-level').textContent = GS.level;
+  document.getElementById('xp-text').textContent = `${GS.xp}/${GS.xpNext}`;
+  document.getElementById('xp-fill').style.width = (GS.xp / GS.xpNext * 100) + '%';
+  updatePlayerCard();
+}
+
+function updatePlayerCard() {
+  const titles = ['Novice','Apprenti','Parieur','Joueur','Pro','Expert','Maître','Légende','Roi','Dieu du Casino'];
+  const title = titles[Math.min(GS.level-1, titles.length-1)];
+  document.getElementById('player-title').textContent = title;
+  const stars = '★'.repeat(Math.min(5,Math.ceil(GS.reputation))) + '☆'.repeat(Math.max(0,5-Math.ceil(GS.reputation)));
+  document.getElementById('rep-stars').textContent = stars;
+}
+
+function gainXP(amount) {
+  GS.xp += amount;
+  while (GS.xp >= GS.xpNext) {
+    GS.xp -= GS.xpNext;
+    GS.level++;
+    GS.skillPoints += 2;
+    GS.xpNext = Math.floor(GS.xpNext * 1.5);
+    toast(`🆙 NIVEAU ${GS.level}! +2 points de compétence`, 'win');
+    checkAchievement('level10', GS.level >= 10);
+  }
+  updateTopbar();
+}
+
+function getTotalWealth() {
+  let total = GS.cash;
+  for (const [k, a] of Object.entries(GS.crypto)) total += a.held * a.price;
+  for (const [k, s] of Object.entries(GS.stocks)) total += s.held * s.price;
+  for (const [id, owned] of Object.entries(GS.properties)) {
+    const p = PROPERTIES.find(pr => pr.id === id);
+    if (p && owned) total += p.price;
+  }
+  // Lifestyle assets (at resale value 70%)
+  if (GS.lifestyle) {
+    for (const [id, qty] of Object.entries(GS.lifestyle)) {
+      const it = LIFESTYLE_ITEMS.find(i => i.id === id);
+      if (it && qty > 0) total += Math.floor(it.price * 0.7 * qty);
+    }
+  }
+  // Subtract outstanding debt
+  if (GS.loans) total -= GS.loans.reduce((s,l) => s + l.remaining, 0);
+  return total;
+}
+
+// ════════════════════════════════════════════════
+//  DASHBOARD
+// ════════════════════════════════════════════════
+function renderDashboard() {
+  const total = getTotalWealth();
+  const cryptoVal = Object.values(GS.crypto).reduce((s, a) => s + a.held * a.price, 0);
+  const stockVal = Object.values(GS.stocks).reduce((s, a) => s + a.held * a.price, 0);
+  const propVal = Object.entries(GS.properties).reduce((s, [id, owned]) => {
+    if (!owned) return s;
+    const p = PROPERTIES.find(pr => pr.id === id);
+    return s + (p ? p.price : 0);
+  }, 0);
+
+  document.getElementById('dash-grid').innerHTML = `
+    <div class="stat-card money">
+      <div class="sc-icon">💵</div><div class="sc-label">Cash Disponible</div>
+      <div class="sc-value gold">$${formatNum(GS.cash,2)}</div>
+      <div class="sc-change">Patrimoine: $${formatNum(total)}</div>
+    </div>
+    <div class="stat-card crypto">
+      <div class="sc-icon">₿</div><div class="sc-label">Portfolio Crypto</div>
+      <div class="sc-value">$${formatNum(cryptoVal,2)}</div>
+      <div class="sc-change ${GS.economy.trend === 'bull' ? 'up' : GS.economy.trend === 'bear' ? 'down' : ''}">Tendance: ${GS.economy.trend}</div>
+    </div>
+    <div class="stat-card passive">
+      <div class="sc-icon">📈</div><div class="sc-label">Actions</div>
+      <div class="sc-value">$${formatNum(stockVal,2)}</div>
+      <div class="sc-change">+div/j: $${formatNum(Object.values(GS.stocks).reduce((s,st) => s + st.held*st.price*st.div/365,0),2)}</div>
+    </div>
+    <div class="stat-card tokens">
+      <div class="sc-icon">🏢</div><div class="sc-label">Immobilier</div>
+      <div class="sc-value">$${formatNum(propVal)}</div>
+      <div class="sc-change up">+$${formatNum(getHourlyPassive())}/h passif</div>
+    </div>
+    <div class="stat-card level">
+      <div class="sc-icon">⭐</div><div class="sc-label">Niveau & XP</div>
+      <div class="sc-value">${GS.level}</div>
+      <div class="sc-change">${GS.xp} / ${GS.xpNext} XP</div>
+    </div>
+    <div class="stat-card rep">
+      <div class="sc-icon">🎰</div><div class="sc-label">Casino Stats</div>
+      <div class="sc-value">$${formatNum(GS.casinoStats.totalWon)}</div>
+      <div class="sc-change">Gagné sur ${GS.casinoStats.totalPlayed} parties</div>
+    </div>
+  `;
+
+  // Market brief
+  const mb = document.getElementById('market-brief');
+  if (mb) {
+    mb.innerHTML = Object.entries(GS.crypto).slice(0,3).map(([k,a]) => {
+      const prev = a.history[a.history.length-2] || a.price;
+      const chg = ((a.price - prev) / prev * 100);
+      return `<div class="flex-between" style="padding:4px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:11px">${CRYPTO_ICONS[k]} ${k}</span>
+        <span style="font-size:11px">${fmtPrice(a.price)}</span>
+        <span class="${chg>=0?'green':'red'}" style="font-size:10px">${chg>=0?'+':''}${chg.toFixed(2)}%</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Active quests mini
+  const aqm = document.getElementById('active-quests-mini');
+  if (aqm) {
+    const active = GS.quests.filter(q => !q.completed).slice(0,3);
+    aqm.innerHTML = active.length ? active.map(q => `
+      <div style="padding:4px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;color:var(--text)">${q.name}</div>
+        <div class="quest-bar" style="margin-top:3px"><div class="quest-fill" style="width:${Math.min(100,q.progress/q.value*100)}%"></div></div>
+        <div class="quest-progress">${formatNum(q.progress)} / ${formatNum(q.value)}</div>
+      </div>
+    `).join('') : '<div class="dim small">Toutes les quêtes complétées!</div>';
+  }
+
+  renderWealthChart();
+}
+
+// ════════════════════════════════════════════════
+//  CHARTS
+// ════════════════════════════════════════════════
+let wealthChartPeriod = '1h';
+let wealthChartCtx = null;
+let cryptoChartCtx = null;
+let stockChartCtx = null;
+
+function getCtx(id) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return null;
+  return canvas.getContext('2d');
+}
+
+function drawLineChart(ctx, data, color, label, fillColor) {
+  const canvas = ctx.canvas;
+  const W = canvas.offsetWidth || 600;
+  const H = canvas.height;
+  canvas.width = W;
+  ctx.clearRect(0, 0, W, H);
+
+  if (!data || data.length < 2) return;
+
+  const min = Math.min(...data) * 0.99;
+  const max = Math.max(...data) * 1.01;
+  const range = max - min || 1;
+
+  const px = (i) => (i / (data.length-1)) * (W-40) + 20;
+  const py = (v) => H - 20 - ((v - min) / range) * (H - 30);
+
+  // Grid
+  ctx.strokeStyle = '#1c2533';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 4; i++) {
+    const y = 10 + (H-30)/3 * i;
+    ctx.beginPath(); ctx.moveTo(20, y); ctx.lineTo(W-20, y); ctx.stroke();
+    const val = max - (range/3)*i;
+    ctx.fillStyle = '#3a4f6a';
+    ctx.font = '9px DM Mono, monospace';
+    ctx.fillText(val >= 1000 ? formatNum(val) : val.toFixed(2), 2, y+3);
+  }
+
+  // Fill gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, fillColor || color + '40');
+  grad.addColorStop(1, 'transparent');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(px(0), H-20);
+  data.forEach((v, i) => ctx.lineTo(px(i), py(v)));
+  ctx.lineTo(px(data.length-1), H-20);
+  ctx.closePath();
+  ctx.fill();
+
+  // Line
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  data.forEach((v, i) => i === 0 ? ctx.moveTo(px(i), py(v)) : ctx.lineTo(px(i), py(v)));
+  ctx.stroke();
+
+  // Last point dot
+  const lastX = px(data.length-1);
+  const lastY = py(data[data.length-1]);
+  ctx.beginPath();
+  ctx.arc(lastX, lastY, 3, 0, Math.PI*2);
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+function renderWealthChart() {
+  const ctx = getCtx('wealthChart');
+  if (!ctx) return;
+  const vals = GS.wealthHistory.slice(-100).map(e => e.v);
+  if (vals.length < 2) vals.push(GS.cash, GS.cash);
+  drawLineChart(ctx, vals, '#c9a84c', 'Patrimoine');
+}
+
+function renderCryptoChart(symbol) {
+  const ctx = getCtx('cryptoChart');
+  if (!ctx) return;
+  const asset = GS.crypto[symbol];
+  if (!asset) return;
+  const title = document.getElementById('crypto-chart-title');
+  if (title) title.textContent = `${symbol} — $${asset.price.toFixed(symbol==='DOGE'?4:2)}`;
+  drawLineChart(ctx, asset.history.slice(-80), CRYPTO_COLORS[symbol] || '#4fc3f7');
+  // Tabs
+  const tabsEl = document.getElementById('crypto-tabs');
+  if (tabsEl) {
+    tabsEl.innerHTML = Object.keys(GS.crypto).map(k =>
+      `<div class="chart-tab${k===symbol?' active':''}" onclick="renderCryptoChart('${k}')">${k}</div>`
+    ).join('');
+  }
+}
+
+function renderStockChart(symbol) {
+  const ctx = getCtx('stockChart');
+  if (!ctx) return;
+  if (symbol) {
+    const s = GS.stocks[symbol];
+    const title = document.getElementById('stock-chart-title');
+    if (title) title.textContent = `${symbol} — $${s.price.toFixed(2)}`;
+    drawLineChart(ctx, s.history.slice(-80), '#00e676');
+  } else {
+    const totalHistory = [];
+    const maxLen = Math.max(...Object.values(GS.stocks).map(s => s.history.length));
+    for (let i = 0; i < Math.min(80, maxLen); i++) {
+      let sum = 0;
+      for (const s of Object.values(GS.stocks)) {
+        const idx = s.history.length - Math.min(80, maxLen) + i;
+        if (idx >= 0) sum += s.history[idx] * s.held;
+      }
+      totalHistory.push(sum);
+    }
+    if (totalHistory.every(v => v === 0)) {
+      const vals = GS.wealthHistory.slice(-80).map(e => e.v);
+      drawLineChart(ctx, vals.length > 1 ? vals : [0,0], '#00e676');
+    } else {
+      drawLineChart(ctx, totalHistory, '#00e676');
+    }
+    const tabsEl = document.getElementById('stock-tabs');
+    if (tabsEl) {
+      tabsEl.innerHTML = Object.keys(GS.stocks).map(k =>
+        `<div class="chart-tab" onclick="renderStockChart('${k}')">${k}</div>`
+      ).join('');
+    }
+  }
+}
+
+function setWealthChartPeriod(p, el) {
+  wealthChartPeriod = p;
+  document.querySelectorAll('.chart-tabs .chart-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderWealthChart();
+}
+
+// ════════════════════════════════════════════════
+//  CASINO RENDER
+// ════════════════════════════════════════════════
+function renderCasino() {
+  const stats = GS.casinoStats;
+  const el = document.getElementById('casino-stats');
+  if (!el) return;
+  const ratio = stats.totalPlayed > 0 ? (stats.totalWon / (stats.totalWon + stats.totalLost) * 100).toFixed(1) : '0.0';
+  el.innerHTML = `
+    <div style="text-align:center"><div class="label">Parties jouées</div><div style="font-family:var(--font-display);font-size:22px;color:var(--text)">${stats.totalPlayed}</div></div>
+    <div style="text-align:center"><div class="label">Total gagné</div><div style="font-family:var(--font-display);font-size:22px;color:var(--green)">$${formatNum(stats.totalWon)}</div></div>
+    <div style="text-align:center"><div class="label">Plus gros gain</div><div style="font-family:var(--font-display);font-size:22px;color:var(--gold-light)">$${formatNum(stats.biggestWin)}</div></div>
+    <div style="text-align:center"><div class="label">Taux de victoire</div><div style="font-family:var(--font-display);font-size:22px;color:${ratio>50?'var(--green)':'var(--red)'}">${ratio}%</div></div>
+  `;
+}
+
+// ════════════════════════════════════════════════
+//  GAME MODAL
+// ════════════════════════════════════════════════
+let currentGame = null;
+function openGame(game) {
+  currentGame = game;
+  const modal = document.getElementById('game-modal');
+  modal.classList.add('open');
+  const titles = { slots:'🎰 MACHINES À SOUS', roulette:'🎡 ROULETTE EUROPÉENNE', blackjack:'🃏 BLACKJACK', poker:'♠️ POKER TEXAS HOLD\'EM', scratch:'🎫 CARTES À GRATTER', keno:'🔢 KENO', plinko:'🔵 PLINKO' };
+  document.getElementById('modal-title').textContent = titles[game] || game;
+  const body = document.getElementById('modal-body');
+  if (game === 'slots') body.innerHTML = buildSlots();
+  else if (game === 'roulette') {
+    rouletteBets = [];
+    body.innerHTML = buildRoulette();
+    setTimeout(() => {
+      drawRoulette();
+      renderBetSlipR();
+      const ls = document.getElementById('r-lifestyle-section');
+      if (ls) ls.innerHTML = buildRouletteLifestyleSection();
+    }, 50);
+  }
+  else if (game === 'blackjack') { body.innerHTML = buildBlackjack(); initBJ(); }
+  else if (game === 'poker') { body.innerHTML = buildPoker(); initPoker(); }
+  else if (game === 'scratch') body.innerHTML = buildScratch();
+  else if (game === 'keno') body.innerHTML = buildKeno();
+  else if (game === 'plinko') { body.innerHTML = buildPlinko(); initPlinko(); }
+}
+
+function closeGame() {
+  document.getElementById('game-modal').classList.remove('open');
+  currentGame = null;
+  if (plinkoRAF) { cancelAnimationFrame(plinkoRAF); plinkoRAF = null; }
+  renderCasino();
+  updateTopbar();
+}
+
+// ════════════════════════════════════════════════
+//  SLOT MACHINE
+// ════════════════════════════════════════════════
+let slotSpinning = false;
+let slotBet = 10;
+
+function buildSlots() {
+  return `
+  <div class="slot-machine">
+    <div class="jackpot-display">
+      <div class="jackpot-label">🎰 JACKPOT PROGRESSIF</div>
+      <div class="jackpot-value" id="slot-jackpot">$${formatNum(GS.jackpot)}</div>
+    </div>
+    <div class="slot-reels" id="slot-reels">
+      <div class="slot-reel" id="reel0"><div class="reel-content">🍒</div></div>
+      <div class="slot-reel" id="reel1"><div class="reel-content">🍋</div></div>
+      <div class="slot-reel" id="reel2"><div class="reel-content">⭐</div></div>
+    </div>
+    <div class="slot-win-line" id="win-line"></div>
+    <div class="slot-result" id="slot-result"></div>
+    <div class="slot-bet-row">
+      <span class="dim small">Mise:</span>
+      <input class="bet-input" id="slot-bet" type="number" min="1" max="10000" value="10" onchange="slotBet=+this.value">
+      <button class="bet-preset" onclick="setSlotBet(10)">10</button>
+      <button class="bet-preset" onclick="setSlotBet(50)">50</button>
+      <button class="bet-preset" onclick="setSlotBet(100)">100</button>
+      <button class="bet-preset" onclick="setSlotBet(500)">500</button>
+      <button class="bet-preset" onclick="setSlotBet(Math.floor(GS.cash*0.1))">10%</button>
+    </div>
+    <button class="spin-btn" id="spin-btn" onclick="doSpin()">🎰 TOURNER</button>
+    <div class="mt" style="font-size:10px;color:var(--text-dim);text-align:center">
+      Cash: <span style="color:var(--gold-light)" id="slot-cash">$${formatNum(GS.cash,2)}</span>
+      &nbsp;|&nbsp; Spins: <span id="slot-spins">${GS.casinoStats.spinsTotal}</span>
+    </div>
+  </div>
+  <div class="mt card" style="background:var(--bg3)">
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin-bottom:8px">TABLE DES GAINS</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:10px">
+      ${Object.entries(SLOT_PAYOUTS).map(([k,v]) => `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:4px 6px;display:flex;justify-content:space-between">
+          <span>${k.includes('any')||k.includes('pair') ? k : k.slice(0,3)}</span>
+          <span style="color:var(--gold-light)">×${v}</span>
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
+}
+
+function setSlotBet(amount) {
+  slotBet = Math.min(Math.floor(amount), GS.cash);
+  const inp = document.getElementById('slot-bet');
+  if (inp) inp.value = slotBet;
+}
+
+function weightedRandom(weights) {
+  const total = weights.reduce((a,b) => a+b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < weights.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return i;
+  }
+  return weights.length - 1;
+}
+
+function doSpin() {
+  if (slotSpinning) return;
+  const bet = slotBet || parseInt(document.getElementById('slot-bet')?.value) || 10;
+  if (GS.cash < bet) { toast('💸 Fonds insuffisants!', 'lose'); return; }
+  if (bet <= 0) { toast('Mise invalide', 'lose'); return; }
+
+  slotSpinning = true;
+  GS.cash -= bet;
+  GS.casinoStats.totalPlayed++;
+  GS.casinoStats.spinsTotal++;
+  GS.casinoStats.totalLost += bet;
+
+  const btn = document.getElementById('spin-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ SPINNING...'; }
+
+  // Clear previous win state
+  [0,1,2].forEach(i => document.getElementById(`reel${i}`)?.classList.remove('reel-win'));
+  document.getElementById('slot-result').className = 'slot-result';
+  document.getElementById('slot-result').textContent = '';
+  document.getElementById('win-line').classList.remove('active');
+
+  // Determine outcome before animation starts
+  const luckBonus = (GS.skills.luck - 1) * 0.02;
+  const results = [0,1,2].map(() => {
+    const adj = SLOT_WEIGHTS.map((w,i) => i >= SLOT_SYMBOLS.length-3 ? w*(1+luckBonus) : w);
+    return weightedRandom(adj);
+  });
+
+  // Cascade stop times — each reel stops later
+  const stopTimes = [700, 1150, 1600];
+
+  [0,1,2].forEach((i) => {
+    const reel = document.getElementById(`reel${i}`);
+    if (!reel) return;
+    const content = reel.querySelector('.reel-content');
+    reel.classList.add('spinning');
+
+    // Stream random symbols while spinning
+    const stream = setInterval(() => {
+      if (content) content.textContent = SLOT_SYMBOLS[Math.floor(Math.random()*SLOT_SYMBOLS.length)];
+    }, 70);
+
+    setTimeout(() => {
+      clearInterval(stream);
+      reel.classList.remove('spinning');
+      if (content) {
+        content.textContent = SLOT_SYMBOLS[results[i]];
+        content.style.transition = 'transform 0.22s cubic-bezier(.17,.67,.3,1.4)';
+        content.style.transform = 'scale(1.5)';
+        setTimeout(() => { if (content) content.style.transform = 'scale(1)'; }, 20);
+      }
+      if (i === 2) {
+        slotSpinning = false;
+        if (btn) { btn.disabled = false; btn.textContent = '🎰 TOURNER'; }
+        const payout = calcSlotPayout(results, bet);
+        handleSlotResult(payout, bet, results);
+      }
+    }, stopTimes[i]);
+  });
+
+  updateTopbar();
+}
+
+function calcSlotPayout(results, bet) {
+  const syms = results.map(i => SLOT_SYMBOLS[i]);
+  const key = syms.join('');
+  if (SLOT_PAYOUTS[key]) return bet * SLOT_PAYOUTS[key];
+  if (syms.every(s => s === '7️⃣')) {
+    const jp = GS.jackpot; GS.jackpot = 50000;
+    toast('🎰🎰🎰 JACKPOT!!! +$' + formatNum(jp), 'win');
+    checkAchievement('jackpot', true);
+    return bet * 500 + jp;
+  }
+  if (syms[0]===syms[1] && syms[1]===syms[2]) return bet * 8;
+  if (syms[0]==='7️⃣' && syms[1]==='7️⃣') return bet * 3;
+  if (syms[0]==='💰' && syms[1]==='💰') return bet * 2;
+  if (syms.includes('⭐') && syms.filter(s=>s==='⭐').length >= 2) return bet * 8;
+  return 0;
+}
+
+function handleSlotResult(payout, bet, results) {
+  const resultEl = document.getElementById('slot-result');
+  const cashEl   = document.getElementById('slot-cash');
+  const spinsEl  = document.getElementById('slot-spins');
+  if (spinsEl) spinsEl.textContent = GS.casinoStats.spinsTotal;
+
+  if (payout > 0) {
+    GS.cash += payout;
+    GS.casinoStats.totalLost -= bet;
+    GS.casinoStats.totalWon  += payout;
+    if (payout > GS.casinoStats.biggestWin) GS.casinoStats.biggestWin = payout;
+    document.getElementById('win-line').classList.add('active');
+
+    // Light up all reels on a triple match
+    if (results) {
+      const syms = results.map(i => SLOT_SYMBOLS[i]);
+      if (syms[0]===syms[1] && syms[1]===syms[2])
+        [0,1,2].forEach(i => document.getElementById(`reel${i}`)?.classList.add('reel-win'));
+    }
+
+    const isMega = payout >= bet * 50;
+    const isBig  = payout >= bet * 10;
+    if (resultEl) {
+      resultEl.textContent = isMega ? `🎰 MEGA WIN +$${formatNum(payout)}!` : `🎉 GAGNÉ +$${formatNum(payout)}`;
+      resultEl.className = 'slot-result win';
+    }
+    if (isMega) { toast(`🎰🎰🎰 MEGA WIN!!! +$${formatNum(payout)}`, 'win'); spawnCoins(16); }
+    else if (isBig) { toast(`🎰 BIG WIN! +$${formatNum(payout)}`, 'win'); spawnCoins(8); }
+    else spawnCoins(3);
+
+    gainXP(Math.ceil(payout/100));
+    checkAchievement('first_win', true);
+    checkAchievement('high_roller', bet >= 100000);
+  } else {
+    if (resultEl) { resultEl.textContent = `💸 Perdu $${formatNum(bet)}`; resultEl.className = 'slot-result lose'; }
+  }
+  if (cashEl) cashEl.textContent = '$' + formatNum(GS.cash, 2);
+  document.getElementById('slot-jackpot').textContent = '$' + formatNum(GS.jackpot);
+  updateTopbar();
+  checkQuestProgress();
+  checkAchievement('spin100', GS.casinoStats.spinsTotal >= 100);
+  checkAchievement('millionaire', GS.cash >= 1000000);
+}
+
+function spawnCoins(count) {
+  const emojis = ['🪙','💰','⭐','💎','🎉'];
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+      el.style.cssText = `position:fixed;left:${15+Math.random()*70}%;top:${20+Math.random()*40}%;font-size:${18+Math.random()*18}px;pointer-events:none;z-index:9999;animation:coinFly ${0.8+Math.random()*0.7}s ease forwards`;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1600);
+    }, i * 60);
+  }
+}
+
+// ════════════════════════════════════════════════
+//  ROULETTE — PARIS MULTIPLES + MISE D'OBJETS
+// ════════════════════════════════════════════════
+const ROULETTE_REDS = [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36];
+let rouletteBets = []; // [{type, number, amount, label, isAsset, assetId, assetValue}]
+let rouletteSpinning = false;
+
+function buildRoulette() {
+  return `
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-height:72vh;overflow:hidden">
+    <!-- LEFT: Wheel + spin -->
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <canvas id="roulette-canvas" width="260" height="260" style="display:block;margin:0 auto"></canvas>
+      <div id="roulette-result" style="text-align:center;font-family:var(--font-display);font-size:20px;min-height:28px"></div>
+      <div class="slot-bet-row" style="flex-wrap:wrap">
+        <span class="dim small">Mise $:</span>
+        <input class="bet-input" id="r-bet" type="number" value="25" min="1" max="50000" style="width:80px">
+        <button class="bet-preset" onclick="document.getElementById('r-bet').value=25">25</button>
+        <button class="bet-preset" onclick="document.getElementById('r-bet').value=100">100</button>
+        <button class="bet-preset" onclick="document.getElementById('r-bet').value=500">500</button>
+        <button class="bet-preset" onclick="document.getElementById('r-bet').value=1000">1K</button>
+      </div>
+      <!-- Bet slip -->
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:11px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;font-size:9px">Bulletins de pari</span>
+          <button onclick="rouletteBets=[];renderBetSlipR()" style="background:var(--red-dim);border:1px solid var(--red);color:var(--red);font-size:9px;padding:2px 7px;border-radius:4px;cursor:pointer">✕ Tout vider</button>
+        </div>
+        <div id="r-bet-slip" style="max-height:100px;overflow-y:auto"></div>
+        <div id="r-total-odds" style="margin-top:6px;color:var(--gold-light);font-size:10px;text-align:right"></div>
+      </div>
+      <button class="spin-btn" id="r-spin-btn" onclick="doRoulette()" style="width:100%">🎡 LANCER</button>
+    </div>
+    <!-- RIGHT: Bet options -->
+    <div style="overflow-y:auto;max-height:68vh">
+      <div style="font-size:10px;color:var(--gold-light);margin-bottom:6px">⚡ Combinez plusieurs paris — les gains s'additionnent!</div>
+      <div class="roulette-bets">
+        ${[
+          {id:'red',name:'🔴 Rouge',odds:'×2'},{id:'black',name:'⚫ Noir',odds:'×2'},
+          {id:'even',name:'Pair',odds:'×2'},{id:'odd',name:'Impair',odds:'×2'},
+          {id:'low',name:'1–18',odds:'×2'},{id:'high',name:'19–36',odds:'×2'},
+          {id:'dozen1',name:'1ère douzaine',odds:'×3'},{id:'dozen2',name:'2ème douzaine',odds:'×3'},{id:'dozen3',name:'3ème douzaine',odds:'×3'}
+        ].map(b => `<div class="rbet" id="rbet-${b.id}" onclick="addRouletteBet('${b.id}')">
+          <div class="rbet-name">${b.name}</div><div class="rbet-odds">${b.odds}</div>
+        </div>`).join('')}
+      </div>
+      <div style="font-size:10px;color:var(--text-dim);margin:8px 0 4px">Numéro précis (×36):</div>
+      <div class="roulette-number-grid">
+        <div class="rnum green-num" onclick="addRouletteNumberBet(0)">0</div>
+        ${Array.from({length:36},(_,i)=>i+1).map(n=>`
+          <div class="rnum ${ROULETTE_REDS.includes(n)?'red-num':'black-num'}" onclick="addRouletteNumberBet(${n})">${n}</div>
+        `).join('')}
+      </div>
+      <!-- Lifestyle wager -->
+      <div id="r-lifestyle-section" style="margin-top:12px"></div>
+    </div>
+  </div>`;
+}
+
+function buildRouletteLifestyleSection() {
+  const owned = LIFESTYLE_ITEMS.filter(it => (GS.lifestyle[it.id] || 0) > 0);
+  if (!owned.length) return '<div style="font-size:10px;color:var(--text-muted)">Aucun bien de luxe possédé. Achetez-en dans Style de Vie!</div>';
+  return `
+    <div style="font-size:10px;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">🎲 Miser un bien de luxe</div>
+    <div style="font-size:10px;color:var(--text-dim);margin-bottom:8px">Si vous perdez, vous perdez l'objet. Si vous gagnez, vous récupérez sa valeur en cash!</div>
+    ${owned.map(it => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;margin-bottom:4px;cursor:pointer" onclick="addLifestyleWager('${it.id}')" onmouseover="this.style.borderColor='var(--orange)'" onmouseout="this.style.borderColor='var(--border)'">
+        <span>${it.icon} ${it.name}</span>
+        <span style="color:var(--orange)">$${formatNum(it.price)} →</span>
+      </div>`).join('')}`;
+}
+
+function addRouletteBet(type) {
+  const amount = parseInt(document.getElementById('r-bet')?.value) || 25;
+  const labels = {red:'🔴 Rouge',black:'⚫ Noir',even:'Pair',odd:'Impair',low:'1–18',high:'19–36',dozen1:'1ère douzaine',dozen2:'2ème douzaine',dozen3:'3ème douzaine'};
+  rouletteBets.push({ type, amount, label: labels[type] });
+  renderBetSlipR();
+  const el = document.getElementById('rbet-'+type);
+  if (el) { el.style.background='rgba(201,168,76,0.15)'; el.style.borderColor='var(--gold)'; setTimeout(()=>{el.style.background='';el.style.borderColor='';},500); }
+  drawRoulette();
+}
+
+function addRouletteNumberBet(n) {
+  const amount = parseInt(document.getElementById('r-bet')?.value) || 25;
+  rouletteBets.push({ type:'number', number:n, amount, label:`Numéro ${n}` });
+  renderBetSlipR();
+  drawRoulette();
+}
+
+function addLifestyleWager(itemId) {
+  const item = LIFESTYLE_ITEMS.find(i => i.id === itemId);
+  if (!item || !(GS.lifestyle[itemId] > 0)) return;
+  if (rouletteBets.find(b => b.assetId === itemId)) { toast('Objet déjà dans le bulletin!','lose'); return; }
+  rouletteBets.push({ type:'asset', amount: item.price, label:`${item.icon} ${item.name}`, isAsset:true, assetId:itemId, assetValue:item.price });
+  renderBetSlipR();
+  toast(`${item.icon} ${item.name} ajouté au pari!`, 'info');
+}
+
+function renderBetSlipR() {
+  const el = document.getElementById('r-bet-slip');
+  const totEl = document.getElementById('r-total-odds');
+  if (!el) return;
+  if (!rouletteBets.length) {
+    el.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:4px">Aucun pari — cliquez sur un type</div>';
+    if (totEl) totEl.textContent = '';
+    return;
+  }
+  const totalMise = rouletteBets.filter(b=>!b.isAsset).reduce((s,b)=>s+b.amount,0);
+  el.innerHTML = rouletteBets.map((b,i)=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;border-bottom:1px solid var(--border)">
+      <span>${b.label}</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span style="color:${b.isAsset?'var(--orange)':'var(--gold-light)'}">
+          ${b.isAsset ? '🎲 ' : ''}$${formatNum(b.amount)}
+        </span>
+        <button onclick="rouletteBets.splice(${i},1);renderBetSlipR()" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:11px">✕</button>
+      </div>
+    </div>`).join('');
+  if (totEl) totEl.textContent = totalMise > 0 ? `Total cash misé: $${formatNum(totalMise)}` : '';
+
+  // Rebuild lifestyle section
+  const ls = document.getElementById('r-lifestyle-section');
+  if (ls) ls.innerHTML = buildRouletteLifestyleSection();
+}
+
+function drawRoulette(winNum) {
+  const canvas = document.getElementById('roulette-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const cx = 130, cy = 130, r = 120;
+  ctx.clearRect(0,0,260,260);
+  const nums = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
+  const total = nums.length;
+  nums.forEach((n, i) => {
+    const start = (i/total)*Math.PI*2 - Math.PI/2;
+    const end = ((i+1)/total)*Math.PI*2 - Math.PI/2;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,start,end); ctx.closePath();
+    let color = n===0?'#2e7d32':ROULETTE_REDS.includes(n)?'#c62828':'#1a1a1a';
+    if (winNum !== undefined && n === winNum) color = '#c9a84c';
+    ctx.fillStyle = color; ctx.fill();
+    ctx.strokeStyle='#0d1117'; ctx.lineWidth=1; ctx.stroke();
+    const mid = (start+end)/2;
+    ctx.save();
+    ctx.translate(cx+Math.cos(mid)*r*0.75, cy+Math.sin(mid)*r*0.75);
+    ctx.rotate(mid+Math.PI/2);
+    ctx.fillStyle = (winNum !== undefined && n === winNum) ? '#000' : '#fff';
+    ctx.font='bold 7px DM Mono'; ctx.textAlign='center';
+    ctx.fillText(n,0,3); ctx.restore();
+  });
+  ctx.beginPath(); ctx.arc(cx,cy,18,0,Math.PI*2);
+  ctx.fillStyle='#0d1117'; ctx.fill();
+  ctx.strokeStyle='#c9a84c'; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle='#c9a84c'; ctx.font='bold 14px DM Mono'; ctx.textAlign='center';
+  ctx.fillText('CE',cx,cy+5);
+}
+
+function doRoulette() {
+  if (rouletteSpinning) return;
+  if (!rouletteBets.length) { toast('Ajoutez au moins un pari!','lose'); return; }
+  const cashBets = rouletteBets.filter(b => !b.isAsset);
+  const assetBets = rouletteBets.filter(b => b.isAsset);
+  const totalCash = cashBets.reduce((s,b)=>s+b.amount,0);
+  if (GS.cash < totalCash) { toast('Fonds insuffisants pour les paris cash!','lose'); return; }
+
+  rouletteSpinning = true;
+  GS.cash -= totalCash;
+  GS.casinoStats.totalPlayed++;
+  GS.casinoStats.totalLost += totalCash;
+
+  // Remove wagered assets immediately
+  assetBets.forEach(b => {
+    if (GS.lifestyle[b.assetId] > 1) GS.lifestyle[b.assetId]--;
+    else delete GS.lifestyle[b.assetId];
+  });
+
+  const btn = document.getElementById('r-spin-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '🌀 EN COURS...'; }
+  document.getElementById('roulette-result').innerHTML = '<span style="color:var(--text-dim)">🌀 La bille tourne...</span>';
+
+  // Spin animation — fast then slow
+  let spins = 0; let delay = 50;
+  const nums = [0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
+  const result = Math.floor(Math.random()*37);
+
+  const tick = () => {
+    drawRoulette(nums[Math.floor(Math.random()*nums.length)]);
+    spins++;
+    delay = spins < 15 ? 50 : spins < 25 ? 100 : spins < 32 ? 170 : 0;
+    if (delay > 0) { setTimeout(tick, delay); return; }
+
+    // Final
+    drawRoulette(result);
+    const isRed = ROULETTE_REDS.includes(result);
+    const color = result===0?'#2e7d32':isRed?'#e53935':'#333';
+    const label = result===0?'🟢 Zéro':isRed?'🔴 Rouge':'⚫ Noir';
+
+    const resEl = document.getElementById('roulette-result');
+    if (resEl) resEl.innerHTML = `<span style="background:${color};padding:5px 16px;border-radius:8px;font-size:26px;font-weight:bold">${result}</span> <span style="font-size:12px;color:var(--text-dim)">${label} • ${result!==0&&result%2===0?'Pair':'Impair'}</span>`;
+
+    // Calculate cash bets
+    let totalPayout = 0;
+    let winLines = [];
+    cashBets.forEach(b => {
+      const p = calcRoulettePayout(result, b.type, b.number, b.amount);
+      if (p > 0) { totalPayout += p; winLines.push(`${b.label} +$${formatNum(p)}`); }
+    });
+
+    // Calculate asset bets (win = get asset value back as cash)
+    let assetWins = [];
+    assetBets.forEach(b => {
+      const isWin = checkRouletteAssetWin(result, b);
+      if (isWin) {
+        totalPayout += b.assetValue;
+        assetWins.push(`${b.label} récupéré! +$${formatNum(b.assetValue)}`);
+        spawnCoins(6);
+      } else {
+        toast(`💸 ${b.label} perdu(e)!`, 'lose');
+      }
+    });
+
+    if (totalPayout > 0) {
+      GS.cash += totalPayout;
+      GS.casinoStats.totalWon += totalPayout;
+      GS.casinoStats.totalLost -= totalCash;
+      if (totalPayout > GS.casinoStats.biggestWin) GS.casinoStats.biggestWin = totalPayout;
+      const allWins = [...winLines, ...assetWins];
+      toast(`🎡 Gagné! +$${formatNum(totalPayout)}`, 'win');
+      if (allWins.length > 1 && resEl) setTimeout(()=>{ if(resEl) resEl.innerHTML += `<div style="font-size:10px;color:var(--green);margin-top:4px">${allWins.join(' • ')}</div>`; },100);
+      gainXP(Math.ceil(totalPayout/50));
+      checkAchievement('first_win', true);
+      if (totalPayout >= 10000) spawnCoins(10);
+    } else {
+      toast(`🎡 Perdu $${formatNum(totalCash)}`, 'lose');
+    }
+
+    rouletteBets = [];
+    renderBetSlipR();
+    if (btn) { btn.disabled = false; btn.textContent = '🎡 LANCER'; }
+    rouletteSpinning = false;
+    updateTopbar();
+    checkQuestProgress();
+    checkAchievement('millionaire', GS.cash >= 1000000);
+  };
+  setTimeout(tick, 50);
+}
+
+// For asset bets, win on red/black/even/odd/number — player picks when adding (default: rouge)
+function checkRouletteAssetWin(result, bet) {
+  // Asset bets win on rouge by default (player chose to wager on rouge)
+  const isRed = ROULETTE_REDS.includes(result);
+  return result !== 0 && isRed; // Asset wager always bets on Rouge
+}
+
+function calcRoulettePayout(result, type, number, bet) {
+  const isRed = ROULETTE_REDS.includes(result);
+  if (type === 'number') return result === number ? bet * 36 : 0;
+  if (type === 'red')    return (result !== 0 && isRed)            ? bet * 2 : 0;
+  if (type === 'black')  return (result !== 0 && !isRed)           ? bet * 2 : 0;
+  if (type === 'even')   return (result !== 0 && result%2===0)     ? bet * 2 : 0;
+  if (type === 'odd')    return (result !== 0 && result%2!==0)     ? bet * 2 : 0;
+  if (type === 'low')    return (result >= 1 && result <= 18)      ? bet * 2 : 0;
+  if (type === 'high')   return (result >= 19)                     ? bet * 2 : 0;
+  if (type === 'dozen1') return (result >= 1 && result <= 12)      ? bet * 3 : 0;
+  if (type === 'dozen2') return (result >= 13 && result <= 24)     ? bet * 3 : 0;
+  if (type === 'dozen3') return (result >= 25 && result <= 36)     ? bet * 3 : 0;
+  return 0;
+}
+
+// ════════════════════════════════════════════════
+//  BLACKJACK
+// ════════════════════════════════════════════════
+let bjDeck = [], bjPlayer = [], bjDealer = [], bjBet = 0, bjPhase = 'bet';
+
+const CARD_NAMES = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const SUITS = ['♠','♥','♦','♣'];
+const RED_SUITS = ['♥','♦'];
+
+function buildBlackjack() {
+  return `
+  <div class="bj-table">
+    <div class="bj-zone">
+      <div class="bj-zone-label">CROUPIER</div>
+      <div class="cards-row" id="dealer-cards"></div>
+      <div class="bj-score" id="dealer-score">—</div>
+    </div>
+    <div style="text-align:center;padding:8px 0;font-size:11px;color:rgba(255,255,255,.3)">• • •</div>
+    <div class="bj-zone">
+      <div class="bj-zone-label">VOTRE MAIN</div>
+      <div class="cards-row" id="player-cards"></div>
+      <div class="bj-score" id="player-score">—</div>
+    </div>
+  </div>
+  <div id="bj-result" style="text-align:center;font-family:var(--font-display);font-size:22px;letter-spacing:2px;min-height:32px;margin:10px 0"></div>
+  <div style="text-align:center;margin:8px 0">
+    <span class="dim small">Mise: </span>
+    <input class="bet-input" id="bj-bet" type="number" value="25" min="1" max="50000">
+    <button class="bet-preset" onclick="document.getElementById('bj-bet').value=25">25</button>
+    <button class="bet-preset" onclick="document.getElementById('bj-bet').value=100">100</button>
+    <button class="bet-preset" onclick="document.getElementById('bj-bet').value=500">500</button>
+    <span style="margin-left:12px;font-size:11px;color:var(--gold-light)">Cash: <span id="bj-cash">$${formatNum(GS.cash,2)}</span></span>
+  </div>
+  <div class="bj-actions" id="bj-actions">
+    <button class="bj-btn primary" onclick="bjDeal()">🃏 Distribuer</button>
+  </div>`;
+}
+
+function initBJ() {
+  bjDeck = shuffleDeck();
+  bjPlayer = [];
+  bjDealer = [];
+  bjPhase = 'bet';
+  setTimeout(() => drawRoulette(), 100);
+}
+
+function shuffleDeck() {
+  const deck = [];
+  SUITS.forEach(s => CARD_NAMES.forEach(v => deck.push({v,s})));
+  for (let i = deck.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [deck[i],deck[j]] = [deck[j],deck[i]];
+  }
+  return deck;
+}
+
+function bjCardValue(card) {
+  if (['J','Q','K'].includes(card.v)) return 10;
+  if (card.v === 'A') return 11;
+  return parseInt(card.v);
+}
+
+function bjHandValue(hand) {
+  let val = hand.reduce((s, c) => s + bjCardValue(c), 0);
+  let aces = hand.filter(c => c.v === 'A').length;
+  while (val > 21 && aces > 0) { val -= 10; aces--; }
+  return val;
+}
+
+function renderCardEl(card, faceDown=false) {
+  const isRed = RED_SUITS.includes(card?.s);
+  if (faceDown) return `<div class="playing-card face-down"></div>`;
+  return `<div class="playing-card ${isRed?'red-card':'black-card'}">
+    <div class="card-corner">${card.v}<br>${card.s}</div>
+    <div style="font-size:22px">${card.s}</div>
+    <div class="card-corner br">${card.v}<br>${card.s}</div>
+  </div>`;
+}
+
+function renderBJCards() {
+  document.getElementById('dealer-cards').innerHTML = bjDealer.map((c,i) => renderCardEl(c, i===1 && bjPhase==='player')).join('');
+  document.getElementById('player-cards').innerHTML = bjPlayer.map(c => renderCardEl(c)).join('');
+  document.getElementById('player-score').textContent = bjHandValue(bjPlayer) || '—';
+  if (bjPhase === 'player') {
+    document.getElementById('dealer-score').textContent = bjCardValue(bjDealer[0]) || '—';
+  } else {
+    document.getElementById('dealer-score').textContent = bjHandValue(bjDealer) || '—';
+  }
+}
+
+function bjDeal() {
+  bjBet = parseInt(document.getElementById('bj-bet').value) || 25;
+  if (GS.cash < bjBet) { toast('Fonds insuffisants!','lose'); return; }
+  GS.cash -= bjBet;
+  GS.casinoStats.totalPlayed++;
+  GS.casinoStats.totalLost += bjBet;
+  if (bjDeck.length < 15) bjDeck = shuffleDeck();
+  bjPlayer = [bjDeck.pop(), bjDeck.pop()];
+  bjDealer = [bjDeck.pop(), bjDeck.pop()];
+  bjPhase = 'player';
+  renderBJCards();
+  document.getElementById('bj-result').textContent = '';
+  document.getElementById('bj-cash').textContent = '$' + formatNum(GS.cash, 2);
+  document.getElementById('bj-actions').innerHTML = `
+    <button class="bj-btn primary" onclick="bjHit()">➕ Tirer</button>
+    <button class="bj-btn" onclick="bjStand()">✋ Rester</button>
+    <button class="bj-btn" onclick="bjDouble()" ${GS.cash < bjBet?'disabled':''}>×2 Doubler</button>
+    <button class="bj-btn" onclick="bjSplit()" ${bjPlayer[0].v!==bjPlayer[1].v||GS.cash<bjBet?'disabled':''}>✂️ Séparer</button>
+  `;
+  // Check natural blackjack
+  if (bjHandValue(bjPlayer) === 21) {
+    bjRevealDealer();
+    checkAchievement('blackjack_nat', true);
+  }
+}
+
+function bjHit() {
+  bjPlayer.push(bjDeck.pop());
+  renderBJCards();
+  if (bjHandValue(bjPlayer) >= 21) bjRevealDealer();
+}
+
+function bjStand() { bjRevealDealer(); }
+
+function bjDouble() {
+  if (GS.cash < bjBet) return;
+  GS.cash -= bjBet;
+  GS.casinoStats.totalLost += bjBet;
+  bjBet *= 2;
+  bjPlayer.push(bjDeck.pop());
+  renderBJCards();
+  bjRevealDealer();
+}
+
+function bjSplit() { toast('Fonctionnalité Split (prochaine mise)', 'info'); }
+
+function bjRevealDealer() {
+  bjPhase = 'dealer';
+  // Dealer draws to 17
+  while (bjHandValue(bjDealer) < 17) bjDealer.push(bjDeck.pop());
+  renderBJCards();
+  const pv = bjHandValue(bjPlayer);
+  const dv = bjHandValue(bjDealer);
+  const resEl = document.getElementById('bj-result');
+  let msg = '', win = 0;
+
+  if (pv > 21) { msg = '💥 BUST! Vous perdez'; }
+  else if (dv > 21) { msg = '🎉 Croupier bust! Vous gagnez!'; win = bjBet * 2; }
+  else if (pv === 21 && bjPlayer.length === 2) { msg = '🃏 BLACKJACK! ×2.5'; win = Math.floor(bjBet * 2.5); checkAchievement('blackjack_nat',true); }
+  else if (pv > dv) { msg = `🎉 Gagné! (${pv} vs ${dv})`; win = bjBet * 2; }
+  else if (pv === dv) { msg = `🤝 Égalité (${pv})`; win = bjBet; }
+  else { msg = `❌ Perdu (${pv} vs ${dv})`; }
+
+  if (win > 0) {
+    GS.cash += win;
+    GS.casinoStats.totalWon += win;
+    GS.casinoStats.totalLost -= bjBet;
+    if (win > GS.casinoStats.biggestWin) GS.casinoStats.biggestWin = win;
+    gainXP(Math.ceil(win/30));
+    checkAchievement('first_win', true);
+    resEl.innerHTML = `<span class="green">${msg}</span>`;
+  } else {
+    resEl.innerHTML = `<span class="red">${msg}</span>`;
+  }
+  document.getElementById('bj-cash').textContent = '$' + formatNum(GS.cash, 2);
+  document.getElementById('bj-actions').innerHTML = `<button class="bj-btn primary" onclick="bjDeal()">🃏 Nouvelle partie</button>`;
+  updateTopbar();
+  checkQuestProgress();
+  checkAchievement('millionaire', GS.cash >= 1000000);
+}
+
+// ════════════════════════════════════════════════
+//  POKER
+// ════════════════════════════════════════════════
+let pokerState = { deck:[], playerHand:[], aiHand:[], community:[], pot:0, phase:'pre', playerBet:0, aiBet:0, raiseAmount:100, pokerWins:0 };
+
+function buildPoker() {
+  return `
+  <div class="poker-table">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div><div class="bj-zone-label">IA ADVERSAIRE</div><div class="poker-ai-hand" id="ai-hand"></div></div>
+      <div style="text-align:center"><div class="bj-zone-label">CASH</div><div style="font-family:var(--font-display);font-size:16px;color:var(--text-dim)" id="ai-cash-display">$5000</div></div>
+    </div>
+    <div style="text-align:center;margin:10px 0">
+      <div class="bj-zone-label">CARTES COMMUNES</div>
+      <div class="cards-row" id="community-cards" style="justify-content:center;min-height:70px"></div>
+    </div>
+    <div class="poker-pot">POT: <span id="poker-pot">$0</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+      <div><div class="bj-zone-label">VOTRE MAIN</div><div class="cards-row" id="player-poker-hand"></div></div>
+      <div style="text-align:right"><div class="bj-zone-label">VOTRE CASH</div><div style="font-family:var(--font-display);font-size:16px;color:var(--gold-light)" id="poker-cash-display">$${formatNum(GS.cash,2)}</div></div>
+    </div>
+    <div id="poker-msg" style="text-align:center;font-family:var(--font-display);font-size:18px;letter-spacing:2px;min-height:28px;margin:8px 0"></div>
+    <div class="poker-chips" id="chip-row">
+      <div class="chip c5" onclick="addChipBet(5)">5</div>
+      <div class="chip c25" onclick="addChipBet(25)">25</div>
+      <div class="chip c100" onclick="addChipBet(100)">100</div>
+      <div class="chip c500" onclick="addChipBet(500)">500</div>
+      <div class="chip c1000" onclick="addChipBet(1000)">1K</div>
+    </div>
+    <div style="text-align:center;font-size:11px;color:var(--text-dim);margin:4px">Mise actuelle: <span style="color:var(--gold-light)" id="current-raise">$100</span></div>
+    <div class="player-actions" id="poker-actions">
+      <button class="poker-btn" onclick="startPoker()">🃏 Nouvelle partie</button>
+    </div>
+  </div>`;
+}
+
+function initPoker() {
+  pokerState = { deck: shuffleDeck(), playerHand:[], aiHand:[], community:[], pot:0, phase:'pre', playerBet:0, aiBet:0, raiseAmount:100, pokerWins:0, aiCash:5000 };
+}
+
+function addChipBet(val) {
+  pokerState.raiseAmount = (pokerState.raiseAmount || 0) + val;
+  const el = document.getElementById('current-raise');
+  if (el) el.textContent = '$' + pokerState.raiseAmount;
+}
+
+function startPoker() {
+  if (GS.cash < 100) { toast('Minimum 100$ pour jouer!','lose'); return; }
+  pokerState.deck = shuffleDeck();
+  const ante = 50;
+  GS.cash -= ante;
+  pokerState.aiCash = (pokerState.aiCash || 5000);
+  pokerState.aiCash -= ante;
+  pokerState.pot = ante * 2;
+  pokerState.playerHand = [pokerState.deck.pop(), pokerState.deck.pop()];
+  pokerState.aiHand = [pokerState.deck.pop(), pokerState.deck.pop()];
+  pokerState.community = [];
+  pokerState.phase = 'preflop';
+  pokerState.playerBet = ante;
+  pokerState.aiBet = ante;
+  renderPoker(false);
+  setPokerActions('preflop');
+  document.getElementById('poker-msg').textContent = 'Pré-flop — Votre tour';
+  updateTopbar();
+}
+
+function renderPoker(showAI=false) {
+  const ph = document.getElementById('player-poker-hand');
+  const ah = document.getElementById('ai-hand');
+  const cc = document.getElementById('community-cards');
+  const pot = document.getElementById('poker-pot');
+  const pd = document.getElementById('poker-cash-display');
+  const ad = document.getElementById('ai-cash-display');
+  if (ph) ph.innerHTML = pokerState.playerHand.map(c => renderCardEl(c)).join('');
+  if (ah) ah.innerHTML = showAI ? pokerState.aiHand.map(c => renderCardEl(c)).join('') : pokerState.aiHand.map(() => renderCardEl(null, true)).join('');
+  if (cc) cc.innerHTML = pokerState.community.map(c => renderCardEl(c)).join('');
+  if (pot) pot.textContent = '$' + formatNum(pokerState.pot);
+  if (pd) pd.textContent = '$' + formatNum(GS.cash, 2);
+  if (ad) ad.textContent = '$' + formatNum(pokerState.aiCash);
+}
+
+function setPokerActions(phase) {
+  const acts = document.getElementById('poker-actions');
+  if (!acts) return;
+  if (phase === 'preflop' || phase === 'flop' || phase === 'turn') {
+    acts.innerHTML = `
+      <button class="poker-btn fold" onclick="pokerFold()">🏳 Fold</button>
+      <button class="poker-btn" onclick="pokerCheck()">✓ Check</button>
+      <button class="poker-btn raise" onclick="pokerRaise()">↑ Raise +$${pokerState.raiseAmount}</button>
+      <button class="poker-btn" onclick="pokerAllIn()">💥 All-In</button>`;
+  }
+}
+
+function pokerFold() {
+  const loss = pokerState.playerBet;
+  GS.casinoStats.totalLost += loss;
+  GS.casinoStats.totalPlayed++;
+  pokerState.aiCash += pokerState.pot;
+  document.getElementById('poker-msg').innerHTML = '<span class="red">Vous avez couché.</span>';
+  document.getElementById('poker-actions').innerHTML = `<button class="poker-btn" onclick="startPoker()">🃏 Nouvelle partie</button>`;
+  toast(`♠️ Fold — Pot perdu: $${formatNum(loss)}`, 'lose');
+  updateTopbar();
+}
+
+function pokerCheck() {
+  advancePokerPhase();
+}
+
+function pokerRaise() {
+  const raise = pokerState.raiseAmount || 100;
+  if (GS.cash < raise) { toast('Fonds insuffisants!','lose'); return; }
+  GS.cash -= raise;
+  pokerState.pot += raise;
+  pokerState.playerBet += raise;
+  // AI response
+  const aiAction = Math.random();
+  const bluffBonus = (GS.skills.bluff - 1) * 0.05;
+  if (aiAction < 0.3 + bluffBonus) {
+    toast('AI: Call', 'info');
+    pokerState.aiCash -= raise;
+    pokerState.pot += raise;
+    pokerState.aiBet += raise;
+  } else if (aiAction < 0.5) {
+    toast('AI: Re-raise!', 'info');
+    const reRaise = raise * 2;
+    pokerState.aiCash -= reRaise;
+    pokerState.pot += reRaise;
+    pokerState.aiBet += reRaise;
+  } else {
+    toast('AI: Fold — Vous gagnez!', 'win');
+    GS.cash += pokerState.pot;
+    GS.casinoStats.totalWon += pokerState.pot;
+    gainXP(50);
+    pokerState.pokerWins = (pokerState.pokerWins||0) + 1;
+    checkAchievement('poker_face', pokerState.pokerWins >= 5);
+    document.getElementById('poker-actions').innerHTML = `<button class="poker-btn" onclick="startPoker()">🃏 Nouvelle partie</button>`;
+    updateTopbar();
+    return;
+  }
+  advancePokerPhase();
+}
+
+function pokerAllIn() {
+  const amount = GS.cash;
+  GS.cash = 0;
+  pokerState.pot += amount;
+  pokerState.playerBet += amount;
+  // AI calls
+  pokerState.aiCash -= Math.min(amount, pokerState.aiCash);
+  pokerState.pot += Math.min(amount, pokerState.aiCash);
+  // Showdown
+  advancePokerPhase(true);
+}
+
+function advancePokerPhase(forceShowdown=false) {
+  if (pokerState.phase === 'preflop' && !forceShowdown) {
+    pokerState.phase = 'flop';
+    pokerState.community = [pokerState.deck.pop(), pokerState.deck.pop(), pokerState.deck.pop()];
+    renderPoker(false);
+    setPokerActions('flop');
+    document.getElementById('poker-msg').textContent = 'Flop — Votre tour';
+  } else if (pokerState.phase === 'flop' && !forceShowdown) {
+    pokerState.phase = 'turn';
+    pokerState.community.push(pokerState.deck.pop());
+    renderPoker(false);
+    setPokerActions('turn');
+    document.getElementById('poker-msg').textContent = 'Turn — Votre tour';
+  } else {
+    // River + Showdown
+    if (pokerState.community.length < 5) pokerState.community.push(pokerState.deck.pop());
+    pokerState.phase = 'showdown';
+    renderPoker(true);
+    setTimeout(() => pokerShowdown(), 500);
+  }
+}
+
+function pokerHandRank(hand, community) {
+  const all = [...hand, ...community];
+  // Simplified: count pairs, triplets etc.
+  const counts = {};
+  all.forEach(c => { counts[c.v] = (counts[c.v]||0)+1; });
+  const vals = Object.values(counts).sort((a,b) => b-a);
+  const suits = {};
+  all.forEach(c => { suits[c.s] = (suits[c.s]||0)+1; });
+  const flush = Object.values(suits).some(v => v >= 5);
+  const pairs = vals.filter(v=>v===2).length;
+  const trips = vals.filter(v=>v===3).length;
+  const quads = vals.filter(v=>v===4).length;
+  if (quads) return 8;
+  if (trips && pairs) return 7;
+  if (flush) return 6;
+  if (trips) return 4;
+  if (pairs >= 2) return 3;
+  if (pairs === 1) return 2;
+  return 1;
+}
+
+function pokerShowdown() {
+  const pRank = pokerHandRank(pokerState.playerHand, pokerState.community);
+  const aRank = pokerHandRank(pokerState.aiHand, pokerState.community);
+  const rankNames = ['','High Card','Une paire','Deux paires','Brelan','Quinte','Couleur','Full','Carré'];
+  const msg = document.getElementById('poker-msg');
+  const acts = document.getElementById('poker-actions');
+  GS.casinoStats.totalPlayed++;
+
+  if (pRank > aRank || (pRank === aRank && Math.random() < 0.55 + (GS.skills.luck-1)*0.02)) {
+    GS.cash += pokerState.pot;
+    GS.casinoStats.totalWon += pokerState.pot;
+    gainXP(100);
+    pokerState.pokerWins = (pokerState.pokerWins||0) + 1;
+    if (msg) msg.innerHTML = `<span class="green">🏆 Vous gagnez! ${rankNames[pRank]} vs ${rankNames[aRank]} +$${formatNum(pokerState.pot)}</span>`;
+    toast(`♠️ Victoire Poker! +$${formatNum(pokerState.pot)}`, 'win');
+    checkAchievement('poker_face', pokerState.pokerWins >= 5);
+    checkAchievement('first_win', true);
+  } else if (pRank === aRank) {
+    GS.cash += Math.floor(pokerState.pot/2);
+    if (msg) msg.innerHTML = `<span class="gold">🤝 Égalité! ${rankNames[pRank]}</span>`;
+  } else {
+    GS.casinoStats.totalLost += pokerState.playerBet;
+    if (msg) msg.innerHTML = `<span class="red">❌ AI gagne. ${rankNames[aRank]} bat ${rankNames[pRank]}</span>`;
+    toast(`♠️ Défaite Poker. AI: ${rankNames[aRank]}`, 'lose');
+  }
+  if (acts) acts.innerHTML = `<button class="poker-btn" onclick="startPoker()">🃏 Nouvelle partie</button>`;
+  updateTopbar();
+  checkQuestProgress();
+  checkAchievement('millionaire', GS.cash >= 1000000);
+}
+
+// ════════════════════════════════════════════════
+//  SCRATCH CARDS — VRAI GRATTAGE CANVAS
+// ════════════════════════════════════════════════
+let scratchData = { grid:[], price:25, isWin:false, winSym:'', revealed:0, done:false };
+
+function buildScratch() {
+  return `
+  <div style="text-align:center;max-width:520px;margin:0 auto">
+    <div class="card-title" style="font-size:14px;justify-content:center;margin-bottom:4px">🎫 GRATTAGE INSTANTANÉ</div>
+    <p style="font-size:11px;color:var(--text-dim);margin-bottom:14px">Grattez les cases avec votre souris pour révéler les symboles!</p>
+    <div class="slot-bet-row" style="justify-content:center;margin-bottom:12px">
+      <span class="dim small">Prix:</span>
+      <select class="input" id="scratch-price" style="width:130px">
+        <option value="5">$5 — max ×10</option>
+        <option value="25" selected>$25 — max ×50</option>
+        <option value="100">$100 — max ×200</option>
+        <option value="500">$500 — max ×1000</option>
+      </select>
+      <button class="spin-btn" style="margin:0;padding:8px 20px;font-size:14px" id="scratch-buy-btn" onclick="buyScratchCard()">🎫 Acheter</button>
+    </div>
+
+    <div id="scratch-ticket" style="display:none;background:linear-gradient(135deg,#1c0e00,#2a1600);border:3px solid #8a6520;border-radius:18px;padding:20px 24px;box-shadow:0 0 40px rgba(201,168,76,0.15),inset 0 1px 0 rgba(201,168,76,0.1)">
+      <div style="font-family:var(--font-display);font-size:11px;letter-spacing:4px;color:var(--gold-dim);margin-bottom:4px">🎰 CASINO EMPIRE</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:14px">GRATTEZ LES 9 CASES — 3 SYMBOLES IDENTIQUES = GAGNÉ</div>
+      <div id="scratch-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:340px;margin:0 auto"></div>
+      <div style="margin-top:10px;font-size:10px;color:var(--text-dim)">🖱️ Maintenez + glissez pour gratter</div>
+    </div>
+
+    <div id="scratch-result" style="font-family:var(--font-display);font-size:24px;letter-spacing:2px;min-height:36px;margin-top:14px"></div>
+  </div>`;
+}
+
+function buyScratchCard() {
+  const price = parseInt(document.getElementById('scratch-price').value);
+  if (GS.cash < price) { toast('Fonds insuffisants!','lose'); return; }
+  GS.cash -= price;
+  GS.casinoStats.totalPlayed++;
+  GS.casinoStats.totalLost += price;
+  updateTopbar();
+
+  const syms = ['💎','⭐','🎯','💰','🔔','🍒','🍋','🍇','7️⃣'];
+  const mults = { '💎':20,'⭐':10,'🎯':8,'💰':15,'🔔':6,'🍒':4,'🍋':3,'🍇':5,'7️⃣':50 };
+  const luckMod = (GS.skills.luck-1)*0.02;
+  const isWin = Math.random() < 0.38 + luckMod;
+  const winSym = syms[Math.floor(Math.random()*syms.length)];
+
+  let grid = [];
+  for (let i=0;i<9;i++) {
+    if (isWin && i<3) grid.push(winSym);
+    else grid.push(syms[Math.floor(Math.random()*syms.length)]);
+  }
+  // Shuffle
+  for (let i=grid.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[grid[i],grid[j]]=[grid[j],grid[i]];}
+
+  scratchData = { grid, price, isWin, winSym, mult: mults[winSym]||5, revealed:0, done:false };
+
+  document.getElementById('scratch-ticket').style.display = 'block';
+  document.getElementById('scratch-result').innerHTML = '';
+
+  const gridEl = document.getElementById('scratch-grid');
+  gridEl.innerHTML = '';
+
+  grid.forEach((sym, idx) => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;cursor:crosshair';
+
+    // Back layer — revealed content
+    const back = document.createElement('div');
+    back.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:32px;background:#0a0f16;border:1px solid #1a2a3a;border-radius:10px';
+    back.textContent = sym;
+
+    // Canvas scratch layer
+    const cvs = document.createElement('canvas');
+    cvs.width = 110; cvs.height = 110;
+    cvs.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;cursor:crosshair;z-index:2;border-radius:10px';
+
+    const ctx = cvs.getContext('2d');
+    // Draw gold scratch surface
+    const grad = ctx.createLinearGradient(0,0,110,110);
+    grad.addColorStop(0,'#b8922a');
+    grad.addColorStop(0.4,'#e8c060');
+    grad.addColorStop(0.6,'#c9a84c');
+    grad.addColorStop(1,'#7a5518');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.roundRect(0,0,110,110,8); ctx.fill();
+    // Texture dots
+    ctx.fillStyle='rgba(0,0,0,0.12)';
+    for(let i=0;i<60;i++){ctx.beginPath();ctx.arc(Math.random()*110,Math.random()*110,Math.random()*2.5+0.5,0,Math.PI*2);ctx.fill();}
+    // Label
+    ctx.fillStyle='rgba(0,0,0,0.5)';
+    ctx.font='bold 11px DM Mono'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('GRATTER', 55, 50);
+    ctx.font='22px sans-serif'; ctx.fillText('🪙', 55, 75);
+
+    wrap.appendChild(back);
+    wrap.appendChild(cvs);
+    gridEl.appendChild(wrap);
+
+    // Scratch interaction
+    let isDown = false;
+    ctx.globalCompositeOperation = 'destination-out';
+
+    function doScratch(x,y) {
+      const rect = cvs.getBoundingClientRect();
+      const sx = (x - rect.left) * (cvs.width / rect.width);
+      const sy = (y - rect.top)  * (cvs.height / rect.height);
+      ctx.beginPath(); ctx.arc(sx, sy, 22, 0, Math.PI*2); ctx.fill();
+      checkCellRevealed(ctx, cvs, idx);
+    }
+
+    cvs.addEventListener('mousedown', e => { isDown=true; doScratch(e.clientX,e.clientY); });
+    cvs.addEventListener('mousemove', e => { if(isDown) doScratch(e.clientX,e.clientY); });
+    window.addEventListener('mouseup', () => isDown=false);
+    cvs.addEventListener('touchstart', e => { e.preventDefault(); isDown=true; doScratch(e.touches[0].clientX,e.touches[0].clientY); }, {passive:false});
+    cvs.addEventListener('touchmove', e => { e.preventDefault(); if(isDown) doScratch(e.touches[0].clientX,e.touches[0].clientY); }, {passive:false});
+    cvs.addEventListener('touchend', () => isDown=false);
+  });
+}
+
+function checkCellRevealed(ctx, cvs, idx) {
+  if (scratchData.done) return;
+  const px = ctx.getImageData(0,0,cvs.width,cvs.height).data;
+  let trans = 0;
+  for (let i=3;i<px.length;i+=4) if(px[i]<128) trans++;
+  if (trans / (cvs.width*cvs.height) > 0.5) {
+    // Fully erase this cell
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    scratchData.revealed++;
+    if (scratchData.revealed >= 9 && !scratchData.done) {
+      scratchData.done = true;
+      setTimeout(resolveScratch, 300);
+    }
+  }
+}
+
+function resolveScratch() {
+  // Count matching symbols across the whole grid
+  const counts = {};
+  scratchData.grid.forEach(s => counts[s]=(counts[s]||0)+1);
+  const triple = Object.entries(counts).find(([,v]) => v>=3);
+
+  if (triple) {
+    const sym = triple[0];
+    const mults = { '💎':20,'⭐':10,'🎯':8,'💰':15,'🔔':6,'🍒':4,'🍋':3,'🍇':5,'7️⃣':50 };
+    const mult = mults[sym] || 5;
+    const payout = scratchData.price * mult;
+    GS.cash += payout;
+    GS.casinoStats.totalWon += payout;
+    GS.casinoStats.totalLost -= scratchData.price;
+    if (payout > GS.casinoStats.biggestWin) GS.casinoStats.biggestWin = payout;
+    document.getElementById('scratch-result').innerHTML =
+      `<span class="green" style="text-shadow:0 0 20px rgba(0,230,118,.6)">🎉 GAGNÉ ${sym}×3 — +$${formatNum(payout)}</span>`;
+    toast(`🎫 WIN! ${sym}×3 +$${formatNum(payout)}`, 'win');
+    spawnCoins(10);
+    gainXP(Math.ceil(payout/20));
+    checkAchievement('first_win', true);
+  } else {
+    document.getElementById('scratch-result').innerHTML =
+      `<span class="red">😞 Pas de chance — Réessayez!</span>`;
+  }
+  updateTopbar();
+  checkQuestProgress();
+  checkAchievement('millionaire', GS.cash >= 1000000);
+
+  // Show "buy again" button
+  const btn = document.getElementById('scratch-buy-btn');
+  if (btn) btn.textContent = '🎫 Nouvelle carte';
+}
+
+// ════════════════════════════════════════════════
+//  PLINKO — PHYSIQUE RÉELLE
+// ════════════════════════════════════════════════
+let plinkoCanvas = null, plinkoCtx = null, plinkoRAF = null;
+let plinkoBalls = [];
+
+const PLINKO_ROWS = 14;
+const PLINKO_COLS = PLINKO_ROWS + 1; // number of slots
+const PLINKO_MULTS = {
+  low:  [1.5, 1.2, 1.0, 0.5, 0.3, 0.2, 0.3, 0.5, 1.0, 1.2, 1.5],
+  mid:  [8, 3, 1.5, 0.8, 0.4, 0.2, 0.4, 0.8, 1.5, 3, 8],
+  high: [8, 5, 2, 0.5, 0.2, 0.1, 0.2, 0.5, 2, 5, 8]
+};
+
+function buildPlinko() {
+  return `
+  <div style="display:flex;gap:16px;max-width:720px;margin:0 auto">
+    <!-- Canvas -->
+    <div style="flex:1;min-width:0">
+      <canvas id="plinko-canvas" style="width:100%;border:1px solid var(--border);border-radius:12px;display:block;background:#070a0f"></canvas>
+    </div>
+    <!-- Controls -->
+    <div style="width:170px;flex-shrink:0;display:flex;flex-direction:column;gap:10px">
+      <div class="card" style="background:var(--bg3);padding:12px">
+        <div class="label" style="margin-bottom:6px">Mise par bille</div>
+        <input class="bet-input" id="plinko-bet" type="number" value="10" min="1" style="width:100%;margin-bottom:6px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+          <button class="bet-preset" onclick="document.getElementById('plinko-bet').value=10">$10</button>
+          <button class="bet-preset" onclick="document.getElementById('plinko-bet').value=50">$50</button>
+          <button class="bet-preset" onclick="document.getElementById('plinko-bet').value=100">$100</button>
+          <button class="bet-preset" onclick="document.getElementById('plinko-bet').value=500">$500</button>
+        </div>
+      </div>
+      <div class="card" style="background:var(--bg3);padding:12px">
+        <div class="label" style="margin-bottom:6px">Risque</div>
+        <select class="input" id="plinko-risk" style="font-size:11px" onchange="drawPlinkoBoard()">
+          <option value="low">🟢 Faible</option>
+          <option value="mid" selected>🟡 Moyen</option>
+          <option value="high">🔴 Élevé</option>
+        </select>
+      </div>
+      <button class="spin-btn" id="plinko-drop-btn" onclick="plinkoDropBall()" style="width:100%;font-size:15px;padding:10px">🔵 LANCER</button>
+      <button class="spin-btn" onclick="plinkoDropMulti(5)" style="width:100%;font-size:13px;padding:8px;background:linear-gradient(135deg,#1565c0,#0d47a1);color:#fff">× 5 BILLES</button>
+      <button class="spin-btn" onclick="plinkoDropMulti(10)" style="width:100%;font-size:13px;padding:8px;background:linear-gradient(135deg,#4a148c,#311b92);color:#fff">× 10 BILLES</button>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px">
+        <div class="label" style="margin-bottom:4px">Cash</div>
+        <div style="color:var(--gold-light);font-family:var(--font-display);font-size:16px" id="plinko-cash">$${formatNum(GS.cash,2)}</div>
+      </div>
+      <div id="plinko-last" style="font-family:var(--font-display);font-size:20px;letter-spacing:2px;text-align:center;min-height:28px"></div>
+    </div>
+  </div>`;
+}
+
+function initPlinko() {
+  plinkoCanvas = document.getElementById('plinko-canvas');
+  if (!plinkoCanvas) return;
+  // Set canvas resolution
+  plinkoCanvas.width = 480;
+  plinkoCanvas.height = 520;
+  plinkoCtx = plinkoCanvas.getContext('2d');
+  plinkoBalls = [];
+  if (plinkoRAF) cancelAnimationFrame(plinkoRAF);
+  plinkoLoop();
+}
+
+function getPegPositions() {
+  const W = 480, H = 520;
+  const padX = 36, padTop = 40, padBot = 70;
+  const usableH = H - padTop - padBot;
+  const pegs = [];
+  for (let row = 0; row < PLINKO_ROWS; row++) {
+    const cols = row + 2;
+    const rowY = padTop + (row / (PLINKO_ROWS - 1)) * usableH;
+    const rowSpan = (W - padX * 2) * (cols / (PLINKO_ROWS + 1));
+    const startX = (W - rowSpan) / 2;
+    for (let col = 0; col < cols; col++) {
+      pegs.push({ x: startX + (cols > 1 ? col * rowSpan / (cols - 1) : 0), y: rowY, row, col });
+    }
+  }
+  return pegs;
+}
+
+function getSlotBounds() {
+  const W = 480, H = 520;
+  const padX = 36, padBot = 70;
+  const slots = PLINKO_MULTS['mid'].length; // same count for all risks
+  const slotW = (W - padX * 2) / slots;
+  const bounds = [];
+  for (let i = 0; i < slots; i++) {
+    bounds.push({ x: padX + i * slotW, w: slotW, cx: padX + i * slotW + slotW / 2 });
+  }
+  return bounds;
+}
+
+function drawPlinkoBoard(highlightSlot = -1) {
+  if (!plinkoCtx) return;
+  const W = 480, H = 520;
+  const ctx = plinkoCtx;
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+  bgGrad.addColorStop(0, '#060910');
+  bgGrad.addColorStop(1, '#0d1117');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  const pegs = getPegPositions();
+  const risk = document.getElementById('plinko-risk')?.value || 'mid';
+  const mults = PLINKO_MULTS[risk];
+
+  // Draw pegs
+  pegs.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#c9a84c';
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = 'rgba(201,168,76,0.5)';
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  });
+
+  // Draw slot buckets
+  const slotBounds = getSlotBounds();
+  const slotY = H - 65;
+  const slotH = 52;
+
+  const multColor = v => {
+    if (v >= 100) return { bg: 'rgba(255,61,79,0.25)', border: '#ff3d4f', text: '#ff3d4f' };
+    if (v >= 10)  return { bg: 'rgba(255,152,0,0.2)',  border: '#ff9800', text: '#ff9800' };
+    if (v >= 2)   return { bg: 'rgba(201,168,76,0.2)', border: '#c9a84c', text: '#f0d080' };
+    if (v >= 1)   return { bg: 'rgba(79,195,247,0.15)',border: '#4fc3f7', text: '#4fc3f7' };
+    return          { bg: 'rgba(106,127,154,0.15)',    border: '#3a4f6a', text: '#6a7f9a' };
+  };
+
+  slotBounds.forEach((s, i) => {
+    const mc = multColor(mults[i]);
+    const isHighlight = i === highlightSlot;
+
+    ctx.fillStyle = isHighlight ? mc.border : mc.bg;
+    ctx.strokeStyle = mc.border;
+    ctx.lineWidth = isHighlight ? 2 : 1;
+    ctx.shadowBlur = isHighlight ? 18 : 0;
+    ctx.shadowColor = mc.border;
+    ctx.beginPath();
+    ctx.roundRect(s.x + 1, slotY, s.w - 2, slotH, 4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = isHighlight ? '#000' : mc.text;
+    ctx.font = `bold ${mults[i] >= 100 ? 8 : 9}px DM Mono`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const label = mults[i] >= 1 ? mults[i] + 'x' : mults[i] + 'x';
+    ctx.fillText(label, s.cx, slotY + slotH / 2);
+  });
+}
+
+function plinkoDropBall() {
+  const bet = parseInt(document.getElementById('plinko-bet')?.value) || 10;
+  if (GS.cash < bet) { toast('Fonds insuffisants!', 'lose'); return; }
+  GS.cash -= bet;
+  GS.casinoStats.totalPlayed++;
+  GS.casinoStats.totalLost += bet;
+  updateTopbar();
+  const cashEl = document.getElementById('plinko-cash');
+  if (cashEl) cashEl.textContent = '$' + formatNum(GS.cash, 2);
+
+  const risk = document.getElementById('plinko-risk')?.value || 'mid';
+  const W = 480;
+  plinkoBalls.push({
+    x: W / 2 + (Math.random() - 0.5) * 8,
+    y: 20,
+    vx: (Math.random() - 0.5) * 1.5,
+    vy: 1,
+    r: 7,
+    bet,
+    risk,
+    trail: [],
+    landed: false,
+    alpha: 1,
+    color: `hsl(${200 + Math.random() * 60},90%,60%)`
+  });
+}
+
+function plinkoDropMulti(n) {
+  for (let i = 0; i < n; i++) {
+    setTimeout(plinkoDropBall, i * 200);
+  }
+}
+
+function plinkoLoop() {
+  const W = 480, H = 520;
+  const pegs = getPegPositions();
+  const slotBounds = getSlotBounds();
+
+  let highlightSlot = -1;
+
+  drawPlinkoBoard(highlightSlot);
+
+  // Update + draw balls
+  for (let b = plinkoBalls.length - 1; b >= 0; b--) {
+    const ball = plinkoBalls[b];
+
+    if (ball.landed) {
+      ball.alpha -= 0.025;
+      if (ball.alpha <= 0) { plinkoBalls.splice(b, 1); continue; }
+      plinkoCtx.globalAlpha = ball.alpha;
+      plinkoCtx.beginPath();
+      plinkoCtx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+      plinkoCtx.fillStyle = ball.color;
+      plinkoCtx.fill();
+      plinkoCtx.globalAlpha = 1;
+      continue;
+    }
+
+    // Gravity
+    ball.vy += 0.22;
+    ball.vx *= 0.995;
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+
+    // Wall bounce
+    if (ball.x - ball.r < 36)       { ball.x = 36 + ball.r;     ball.vx =  Math.abs(ball.vx) * 0.6; }
+    if (ball.x + ball.r > W - 36)   { ball.x = W - 36 - ball.r; ball.vx = -Math.abs(ball.vx) * 0.6; }
+
+    // Peg collisions
+    for (const p of pegs) {
+      const dx = ball.x - p.x, dy = ball.y - p.y;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      const minD = ball.r + 5;
+      if (d < minD && d > 0.01) {
+        const nx = dx / d, ny = dy / d;
+        ball.x = p.x + nx * (minD + 0.5);
+        ball.y = p.y + ny * (minD + 0.5);
+        const dot = ball.vx * nx + ball.vy * ny;
+        ball.vx = (ball.vx - 2 * dot * nx) * 0.55;
+        ball.vy = (ball.vy - 2 * dot * ny) * 0.55;
+        // Nudge left/right randomly on peg hit
+        ball.vx += (Math.random() - 0.5) * 2.5;
+        if (ball.vy < 1) ball.vy = 1;
+      }
+    }
+
+    // Land in slot
+    const slotY = H - 65;
+    if (ball.y + ball.r >= slotY) {
+      const risk = ball.risk || 'mid';
+      const mults = PLINKO_MULTS[risk];
+      // Find which slot
+      let si = slotBounds.findIndex((s, i) => ball.x >= s.x && ball.x < s.x + s.w);
+      if (si < 0) si = ball.x < slotBounds[0].x ? 0 : slotBounds.length - 1;
+
+      ball.y = slotY + 20;
+      ball.landed = true;
+      ball.alpha = 1;
+
+      const mult = mults[si];
+      const payout = Math.round(ball.bet * mult);
+      GS.cash += payout;
+
+      if (payout >= ball.bet) {
+        GS.casinoStats.totalWon += payout;
+        GS.casinoStats.totalLost -= ball.bet;
+        if (payout > GS.casinoStats.biggestWin) GS.casinoStats.biggestWin = payout;
+        gainXP(Math.ceil(payout / 50));
+        checkAchievement('first_win', true);
+        if (mult >= 100) toast(`🔵 MEGA WIN ×${mult}! +$${formatNum(payout)}`, 'win');
+        else if (mult >= 10) toast(`🔵 Big win ×${mult}! +$${formatNum(payout)}`, 'win');
+      }
+
+      const lastEl = document.getElementById('plinko-last');
+      if (lastEl) {
+        const col = mult >= 10 ? '#ff9800' : mult >= 2 ? '#f0d080' : mult >= 1 ? '#4fc3f7' : '#6a7f9a';
+        lastEl.innerHTML = `<span style="color:${col}">×${mult}</span>`;
+      }
+      const cashEl = document.getElementById('plinko-cash');
+      if (cashEl) cashEl.textContent = '$' + formatNum(GS.cash, 2);
+      updateTopbar();
+      checkQuestProgress();
+      checkAchievement('millionaire', GS.cash >= 1000000);
+    }
+
+    // Trail
+    ball.trail.push({ x: ball.x, y: ball.y });
+    if (ball.trail.length > 10) ball.trail.shift();
+
+    ball.trail.forEach((pt, i) => {
+      const a = (i / ball.trail.length) * 0.35;
+      plinkoCtx.globalAlpha = a;
+      plinkoCtx.beginPath();
+      plinkoCtx.arc(pt.x, pt.y, ball.r * (i / ball.trail.length) * 0.8, 0, Math.PI * 2);
+      plinkoCtx.fillStyle = ball.color;
+      plinkoCtx.fill();
+    });
+    plinkoCtx.globalAlpha = 1;
+
+    // Ball
+    plinkoCtx.beginPath();
+    plinkoCtx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+    const g = plinkoCtx.createRadialGradient(ball.x - 2, ball.y - 2, 0, ball.x, ball.y, ball.r);
+    g.addColorStop(0, '#fff');
+    g.addColorStop(1, ball.color);
+    plinkoCtx.fillStyle = g;
+    plinkoCtx.shadowBlur = 12;
+    plinkoCtx.shadowColor = ball.color;
+    plinkoCtx.fill();
+    plinkoCtx.shadowBlur = 0;
+  }
+
+  plinkoRAF = requestAnimationFrame(plinkoLoop);
+}
+
+// ════════════════════════════════════════════════
+//  KENO
+// ════════════════════════════════════════════════
+let kenoSelected = new Set();
+
+function buildKeno() {
+  const nums = Array.from({length:80},(_,i)=>i+1);
+  return `
+  <div style="max-width:600px;margin:0 auto">
+    <p style="font-size:11px;color:var(--text-dim);margin-bottom:12px">Sélectionnez 1 à 10 numéros, puis jouez!</p>
+    <div style="display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-bottom:12px">
+      ${nums.map(n => `<div class="rnum" id="kn-${n}" onclick="toggleKeno(${n})" style="cursor:pointer;text-align:center;padding:5px;font-size:10px">${n}</div>`).join('')}
+    </div>
+    <div class="slot-bet-row" style="justify-content:center">
+      <span class="dim small">Mise:</span>
+      <input class="bet-input" id="keno-bet" type="number" value="10" min="1">
+      <button class="bet-preset" onclick="document.getElementById('keno-bet').value=10">10</button>
+      <button class="bet-preset" onclick="document.getElementById('keno-bet').value=50">50</button>
+      <button class="bet-preset" onclick="document.getElementById('keno-bet').value=100">100</button>
+    </div>
+    <div style="text-align:center;margin:8px;font-size:11px;color:var(--text-dim)">Sélectionnés: <span id="keno-count" class="gold">0</span>/10</div>
+    <button class="spin-btn" style="width:100%" onclick="playKeno()">🔢 JOUER KENO</button>
+    <div id="keno-result" style="font-family:var(--font-display);font-size:18px;text-align:center;min-height:30px;margin-top:10px"></div>
+  </div>`;
+}
+
+function toggleKeno(n) {
+  const el = document.getElementById('kn-'+n);
+  if (kenoSelected.has(n)) {
+    kenoSelected.delete(n);
+    el.classList.remove('selected');
+    el.style.background='';
+  } else if (kenoSelected.size < 10) {
+    kenoSelected.add(n);
+    el.classList.add('selected');
+    el.style.background='rgba(201,168,76,.2)';
+  }
+  document.getElementById('keno-count').textContent = kenoSelected.size;
+}
+
+function playKeno() {
+  if (kenoSelected.size === 0) { toast('Sélectionnez au moins 1 numéro!','lose'); return; }
+  const bet = parseInt(document.getElementById('keno-bet').value) || 10;
+  if (GS.cash < bet) { toast('Fonds insuffisants!','lose'); return; }
+  GS.cash -= bet;
+  GS.casinoStats.totalPlayed++;
+  GS.casinoStats.totalLost += bet;
+
+  const drawn = new Set();
+  while (drawn.size < 20) drawn.add(Math.floor(Math.random()*80)+1);
+
+  let hits = 0;
+  kenoSelected.forEach(n => { if (drawn.has(n)) hits++; });
+  drawn.forEach(n => {
+    const el = document.getElementById('kn-'+n);
+    if (el && !kenoSelected.has(n)) el.style.background='rgba(79,195,247,.2)';
+    if (el && kenoSelected.has(n)) el.style.background='rgba(0,230,118,.3)';
+  });
+
+  const payTable = [0,1.5,2,3,5,10,20,50,100,300,800];
+  const mult = payTable[Math.min(hits, 10)] || 0;
+  const payout = Math.floor(bet * mult);
+  const resEl = document.getElementById('keno-result');
+
+  if (payout > 0) {
+    GS.cash += payout;
+    GS.casinoStats.totalWon += payout;
+    GS.casinoStats.totalLost -= bet;
+    if (payout > GS.casinoStats.biggestWin) GS.casinoStats.biggestWin = payout;
+    resEl.innerHTML = `<span class="green">${hits} hits! +$${formatNum(payout)} (×${mult})</span>`;
+    toast(`🔢 Keno: ${hits} numéros! +$${formatNum(payout)}`, 'win');
+    gainXP(Math.ceil(payout/10));
+    checkAchievement('first_win', true);
+  } else {
+    resEl.innerHTML = `<span class="red">${hits} hits — Aucun gain</span>`;
+  }
+  updateTopbar();
+  checkQuestProgress();
+
+  // Reset la grille après chaque partie
+  setTimeout(() => {
+    kenoSelected.clear();
+    document.querySelectorAll('[id^="kn-"]').forEach(el => {
+      el.classList.remove('selected');
+      el.style.background = '';
+    });
+    document.getElementById('keno-count').textContent = '0';
+  }, 1800);
+}
+
+// ════════════════════════════════════════════════
+//  SPORTS BETTING
+// ════════════════════════════════════════════════
+let currentMatches = [];
+let selectedBet = null;
+let sportsWins = 0;
+
+function initMatches() {
+  generateMatches();
+  setInterval(generateMatches, 120000);
+}
+
+function generateMatches() {
+  currentMatches = [];
+  for (let i = 0; i < 6; i++) {
+    const teams = SPORTS_TEAMS[Math.floor(Math.random()*SPORTS_TEAMS.length)];
+    const home = teams[0], away = teams[1];
+    const homeStrength = Math.random();
+    const awayStrength = 1 - homeStrength;
+    const homeOdds = +(1.5 + awayStrength * 2.5).toFixed(2);
+    const drawOdds = +(2.5 + Math.random() * 1.5).toFixed(2);
+    const awayOdds = +(1.5 + homeStrength * 2.5).toFixed(2);
+    currentMatches.push({
+      id: i, home, away, homeOdds, drawOdds, awayOdds,
+      homeStr: homeStrength, awayStr: awayStrength,
+      sport: ['⚽','🏀','🎾','🏒','🏈'][Math.floor(Math.random()*5)]
+    });
+  }
+  renderSports();
+}
+
+function renderSports() {
+  const list = document.getElementById('matches-list');
+  if (!list) return;
+  list.innerHTML = currentMatches.map(m => `
+    <div class="match-card">
+      <div class="match-teams">
+        <span class="team-name">${m.sport} ${m.home}</span>
+        <span class="match-vs">VS</span>
+        <span class="team-name">${m.away}</span>
+      </div>
+      <div class="odds-row">
+        <div class="odd-btn ${selectedBet?.matchId===m.id&&selectedBet?.type==='home'?'selected':''}" onclick="selectBet(${m.id},'home',${m.homeOdds})">
+          <div class="odd-label">Domicile</div>
+          <div class="odd-value">${m.homeOdds}</div>
+        </div>
+        <div class="odd-btn ${selectedBet?.matchId===m.id&&selectedBet?.type==='draw'?'selected':''}" onclick="selectBet(${m.id},'draw',${m.drawOdds})">
+          <div class="odd-label">Nul</div>
+          <div class="odd-value">${m.drawOdds}</div>
+        </div>
+        <div class="odd-btn ${selectedBet?.matchId===m.id&&selectedBet?.type==='away'?'selected':''}" onclick="selectBet(${m.id},'away',${m.awayOdds})">
+          <div class="odd-label">Extérieur</div>
+          <div class="odd-value">${m.awayOdds}</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  renderBetSlip();
+}
+
+function selectBet(matchId, type, odds) {
+  selectedBet = { matchId, type, odds, match: currentMatches.find(m => m.id === matchId) };
+  renderSports();
+}
+
+function renderBetSlip() {
+  const el = document.getElementById('bet-slip');
+  if (!el) return;
+  if (!selectedBet) {
+    el.innerHTML = '<div class="dim small">Sélectionnez un pari</div>';
+    return;
+  }
+  const m = selectedBet.match;
+  const typeLabel = { home:`${m.home}`, draw:'Nul', away:`${m.away}` };
+  el.innerHTML = `
+    <div style="background:var(--bg3);border:1px solid var(--border-gold);border-radius:8px;padding:10px;margin-bottom:10px">
+      <div style="font-size:11px;color:var(--gold-light)">${m.sport} ${m.home} vs ${m.away}</div>
+      <div style="font-size:12px;margin:4px 0">Pari: <strong>${typeLabel[selectedBet.type]}</strong> @ <span class="gold">${selectedBet.odds}</span></div>
+    </div>
+    <div class="flex" style="margin-bottom:8px">
+      <input class="input" id="sports-bet-amount" type="number" value="50" min="1" placeholder="Montant...">
+    </div>
+    <div style="font-size:10px;color:var(--text-dim);margin-bottom:8px">Gain potentiel: <span class="green" id="potential-win">$${(50*selectedBet.odds).toFixed(2)}</span></div>
+    <button class="btn btn-gold" style="width:100%" onclick="placeSportsBet()">✓ Valider le pari</button>
+    <button class="btn" style="width:100%;margin-top:6px" onclick="selectedBet=null;renderSports()">✕ Annuler</button>
+  `;
+  document.getElementById('sports-bet-amount').addEventListener('input', function() {
+    const pw = document.getElementById('potential-win');
+    if (pw) pw.textContent = '$' + (this.value * selectedBet.odds).toFixed(2);
+  });
+}
+
+function placeSportsBet() {
+  if (!selectedBet) return;
+  const amount = parseInt(document.getElementById('sports-bet-amount').value) || 50;
+  if (GS.cash < amount) { toast('Fonds insuffisants!','lose'); return; }
+
+  GS.cash -= amount;
+  const m = selectedBet.match;
+
+  // Simulate match outcome
+  const r = Math.random();
+  let result;
+  const luckMod = (GS.skills.luck - 1) * 0.03;
+  if (r < m.homeStr * (1 + luckMod)) result = 'home';
+  else if (r < m.homeStr + 0.25) result = 'draw';
+  else result = 'away';
+
+  const typeLabel = { home: m.home, draw:'Nul', away: m.away };
+  if (result === selectedBet.type) {
+    const payout = Math.floor(amount * selectedBet.odds);
+    GS.cash += payout;
+    GS.casinoStats.totalWon += payout;
+    gainXP(50);
+    sportsWins++;
+    toast(`⚽ GAGNÉ! ${typeLabel[result]} — +$${formatNum(payout)}`, 'win');
+    GS.sportsHistory.unshift(`✅ ${m.home} vs ${m.away}: ${typeLabel[result]} @ ${selectedBet.odds} — +$${formatNum(payout)}`);
+    checkAchievement('first_win', true);
+  } else {
+    GS.casinoStats.totalLost += amount;
+    GS.casinoStats.totalPlayed++;
+    toast(`⚽ Perdu — Résultat: ${typeLabel[result]}`, 'lose');
+    GS.sportsHistory.unshift(`❌ ${m.home} vs ${m.away}: ${typeLabel[result]} — -$${formatNum(amount)}`);
+  }
+  GS.casinoStats.totalPlayed++;
+  GS.sportsHistory = GS.sportsHistory.slice(0,20);
+  selectedBet = null;
+  updateTopbar();
+  renderSports();
+  const hist = document.getElementById('sports-history');
+  if (hist) hist.innerHTML = GS.sportsHistory.slice(0,8).map(h => `<div style="padding:3px 0;border-bottom:1px solid var(--border)">${h}</div>`).join('');
+  checkQuestProgress();
+  checkAchievement('millionaire', GS.cash >= 1000000);
+}
+
+// ════════════════════════════════════════════════
+//  CRYPTO / STOCKS
+// ════════════════════════════════════════════════
+function renderCrypto() {
+  const grid = document.getElementById('crypto-grid');
+  if (!grid) return;
+  grid.innerHTML = Object.entries(GS.crypto).map(([k, a]) => {
+    const prev = a.history[a.history.length-2] || a.price;
+    const chg = ((a.price - prev) / prev * 100);
+    return `
+    <div class="crypto-item">
+      <div class="ci-header">
+        <div class="ci-icon" style="background:${CRYPTO_COLORS[k]}22;color:${CRYPTO_COLORS[k]}">${CRYPTO_ICONS[k]}</div>
+        <div><div class="ci-name">${k}</div><div class="ci-symbol">${k === 'BTC' ? 'Bitcoin' : k === 'ETH' ? 'Ethereum' : k === 'SOL' ? 'Solana' : k === 'DOGE' ? 'Dogecoin' : 'CasinoEx'}</div></div>
+      </div>
+      <div class="flex-between">
+        <div class="ci-price">${fmtPrice(a.price)}</div>
+        <div class="ci-change ${chg>=0?'up':'down'}">${chg>=0?'▲':'▼'} ${Math.abs(chg).toFixed(2)}%</div>
+      </div>
+      <div class="ci-owned">Détenu: ${a.held.toFixed(k==='DOGE'?0:4)} ${k} (≈$${formatNum(a.held*a.price,2)})</div>
+      <div class="ci-actions">
+        <button class="ci-btn buy" onclick="tradeAsset('crypto','${k}','buy')">▲ Acheter</button>
+        <button class="ci-btn sell" onclick="tradeAsset('crypto','${k}','sell')" ${a.held<=0?'disabled':''}>▼ Vendre</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderStocks() {
+  const grid = document.getElementById('stocks-grid');
+  if (!grid) return;
+  grid.innerHTML = Object.entries(GS.stocks).map(([k, s]) => {
+    const prev = s.history[s.history.length-2] || s.price;
+    const chg = ((s.price - prev) / prev * 100);
+    return `
+    <div class="crypto-item">
+      <div class="ci-header">
+        <div class="ci-icon" style="background:#00e67622;color:var(--green)">${STOCK_ICONS[k]}</div>
+        <div><div class="ci-name">${k}</div><div class="ci-symbol">Div: ${(s.div*100).toFixed(1)}%/an</div></div>
+      </div>
+      <div class="flex-between">
+        <div class="ci-price">${fmtPrice(s.price)}</div>
+        <div class="ci-change ${chg>=0?'up':'down'}">${chg>=0?'▲':'▼'} ${Math.abs(chg).toFixed(2)}%</div>
+      </div>
+      <div class="ci-owned">Actions: ${s.held} (≈$${formatNum(s.held*s.price,2)})</div>
+      <div class="ci-actions">
+        <button class="ci-btn buy" onclick="tradeAsset('stock','${k}','buy')">▲ Acheter</button>
+        <button class="ci-btn sell" onclick="tradeAsset('stock','${k}','sell')" ${s.held<=0?'disabled':''}>▼ Vendre</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function refreshMarkets() {
+  if (document.getElementById('view-crypto')?.classList.contains('active')) {
+    renderCrypto();
+    renderCryptoChart(document.getElementById('crypto-chart-title')?.textContent?.split(' ')[0] || 'BTC');
+  }
+  if (document.getElementById('view-stocks')?.classList.contains('active')) {
+    renderStocks();
+    renderStockChart();
+  }
+  updateTopbar();
+}
+
+function tradeAsset(type, key, action) {
+  const asset = type === 'crypto' ? GS.crypto[key] : GS.stocks[key];
+  const unit = type === 'crypto' ? 'coins' : 'action';
+  const isSmall = asset.price < 1;
+
+  const amountStr = prompt(`${action==='buy'?'Acheter':'Vendre'} ${key} (prix: ${fmtPrice(asset.price)})\nMontant en $ ? (ex: 100)`);
+  if (!amountStr) return;
+  const dollarAmount = parseFloat(amountStr);
+  if (isNaN(dollarAmount) || dollarAmount <= 0) return;
+
+  if (action === 'buy') {
+    if (GS.cash < dollarAmount) { toast('Fonds insuffisants!','lose'); return; }
+    const qty = dollarAmount / asset.price;
+    GS.cash -= dollarAmount;
+    asset.held += qty;
+    toast(`✅ Acheté ${qty.toFixed(4)} ${key} pour $${formatNum(dollarAmount)}`, 'info');
+    gainXP(10);
+    checkAchievement('investor', Object.values(GS.crypto).filter(a=>a.held>0).length >= 3);
+    checkAchievement('crypto_whale', GS.crypto.BTC.held >= 1);
+    checkQuestProgress();
+  } else {
+    const qty = dollarAmount / asset.price;
+    if (asset.held < qty) { toast(`Vous n'avez que ${asset.held.toFixed(4)} ${key}`, 'lose'); return; }
+    asset.held -= qty;
+    const received = qty * asset.price;
+    GS.cash += received;
+    toast(`✅ Vendu ${qty.toFixed(4)} ${key} pour $${formatNum(received)}`, 'info');
+    gainXP(5);
+  }
+  updateTopbar();
+  renderCrypto();
+  renderStocks();
+}
+
+// ════════════════════════════════════════════════
+//  REAL ESTATE
+// ════════════════════════════════════════════════
+function renderRealEstate() {
+  const grid = document.getElementById('property-grid');
+  if (!grid) return;
+  grid.innerHTML = PROPERTIES.map(p => {
+    const owned = GS.properties[p.id];
+    return `
+    <div class="property-card" style="position:relative" onclick="buyProperty('${p.id}')">
+      ${owned ? '<div class="property-owned">✓ POSSÉDÉ</div>' : ''}
+      <div class="property-img" style="background:linear-gradient(135deg,var(--surface),var(--bg3))">${p.icon}</div>
+      <div class="property-info">
+        <div class="property-name">${p.name}</div>
+        <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px">${p.desc}</div>
+        <div class="property-price">$${formatNum(p.price)}</div>
+        <div class="property-income">+$${formatNum(p.income)}/h passif</div>
+        ${owned ? '' : `<div style="font-size:9px;color:var(--text-dim);margin-top:4px">${GS.cash >= p.price ? '✓ Achetable' : '🔒 Fonds insuffisants'}</div>`}
+      </div>
+    </div>`;
+  }).join('');
+
+  const totalPassive = getHourlyPassive();
+  const totalPropVal = Object.entries(GS.properties).reduce((s,[id,o]) => {
+    if (!o) return s;
+    const p = PROPERTIES.find(pr=>pr.id===id);
+    return s + (p?p.price:0);
+  }, 0);
+  const tp = document.getElementById('total-passive');
+  const tr = document.getElementById('total-restate');
+  if (tp) tp.textContent = '$' + formatNum(totalPassive, 2);
+  if (tr) tr.textContent = '$' + formatNum(totalPropVal);
+}
+
+function buyProperty(id) {
+  if (GS.properties[id]) { toast('Vous possédez déjà ce bien!','info'); return; }
+  const prop = PROPERTIES.find(p => p.id === id);
+  if (!prop) return;
+  if (GS.cash < prop.price) { toast(`Fonds insuffisants! Besoin: $${formatNum(prop.price)}`,'lose'); return; }
+  if (!confirm(`Acheter ${prop.name} pour $${formatNum(prop.price)}?\nRevenu: +$${formatNum(prop.income)}/h`)) return;
+  GS.cash -= prop.price;
+  GS.properties[id] = true;
+  toast(`🏠 ${prop.name} acheté! +$${formatNum(prop.income)}/h`, 'win');
+  gainXP(100);
+  checkAchievement('landlord', true);
+  checkQuestProgress();
+  updateTopbar();
+  renderRealEstate();
+}
+
+// ════════════════════════════════════════════════
+//  SKILLS
+// ════════════════════════════════════════════════
+function renderSkills() {
+  const tree = document.getElementById('skill-tree');
+  const bonuses = document.getElementById('skill-bonuses');
+  const pts = document.getElementById('skill-pts-display');
+  if (!tree) return;
+  if (pts) pts.textContent = GS.skillPoints;
+
+  const skillDefs = [
+    { key:'luck', name:'Chance', icon:'🍀', color:'luck', desc:'Améliore les probabilités de gains' },
+    { key:'finance', name:'Finance', icon:'💹', color:'finance', desc:'Meilleurs rendements sur investissements' },
+    { key:'bluff', name:'Bluff', icon:'🎭', color:'bluff', desc:'Avantage au poker' },
+    { key:'charm', name:'Charme', icon:'✨', color:'charm', desc:'Meilleures offres et réductions' },
+  ];
+
+  tree.innerHTML = skillDefs.map(s => {
+    const level = GS.skills[s.key] || 1;
+    const cost = level * 2;
+    return `
+    <div class="skill-row">
+      <div class="skill-icon">${s.icon}</div>
+      <div class="skill-info">
+        <div class="skill-name">${s.name} <span class="dim small">(niv.${level})</span></div>
+        <div class="skill-bar"><div class="skill-fill ${s.color}" style="width:${Math.min(100,level*10)}%"></div></div>
+        <div style="font-size:9px;color:var(--text-dim);margin-top:2px">${s.desc}</div>
+      </div>
+      <div class="skill-pts">${level}/10</div>
+      <button class="skill-upgrade" onclick="upgradeSkill('${s.key}',${cost})" ${GS.skillPoints < cost || level >= 10 ? 'disabled':''}>+1 (${cost}pts)</button>
+    </div>`;
+  }).join('');
+
+  if (bonuses) {
+    bonuses.innerHTML = `
+      <div class="skill-row"><div class="skill-icon">🍀</div><div class="skill-info"><div class="skill-name">Chance ×${GS.skills.luck}</div><div style="font-size:10px;color:var(--text-dim)">+${((GS.skills.luck-1)*2).toFixed(0)}% probabilité casino</div></div></div>
+      <div class="skill-row"><div class="skill-icon">💹</div><div class="skill-info"><div class="skill-name">Finance ×${GS.skills.finance}</div><div style="font-size:10px;color:var(--text-dim)">+${((GS.skills.finance-1)*3).toFixed(0)}% rendement invest.</div></div></div>
+      <div class="skill-row"><div class="skill-icon">🎭</div><div class="skill-info"><div class="skill-name">Bluff ×${GS.skills.bluff}</div><div style="font-size:10px;color:var(--text-dim)">+${((GS.skills.bluff-1)*5).toFixed(0)}% win rate poker</div></div></div>
+      <div class="skill-row"><div class="skill-icon">✨</div><div class="skill-info"><div class="skill-name">Charme ×${GS.skills.charm}</div><div style="font-size:10px;color:var(--text-dim)">-${((GS.skills.charm-1)*1).toFixed(0)}% frais casino</div></div></div>
+    `;
+  }
+}
+
+function upgradeSkill(key, cost) {
+  if (GS.skillPoints < cost || GS.skills[key] >= 10) return;
+  GS.skillPoints -= cost;
+  GS.skills[key]++;
+  toast(`🧠 ${key} amélioré → niveau ${GS.skills[key]}!`, 'win');
+  renderSkills();
+  updateTopbar();
+}
+
+// ════════════════════════════════════════════════
+//  ACHIEVEMENTS
+// ════════════════════════════════════════════════
+function initAchievements() {
+  if (Object.keys(GS.achievements).length > 0) return;
+  ACHIEVEMENTS_DEF.forEach(a => { GS.achievements[a.id] = false; });
+}
+
+function checkAchievement(id, condition) {
+  if (!condition || GS.achievements[id]) return;
+  GS.achievements[id] = true;
+  const def = ACHIEVEMENTS_DEF.find(a => a.id === id);
+  if (def) {
+    toast(`🏆 SUCCÈS DÉBLOQUÉ: ${def.icon} ${def.name}!`, 'win');
+    gainXP(100);
+    const badge = document.getElementById('ach-badge');
+    if (badge) badge.textContent = Object.values(GS.achievements).filter(Boolean).length;
+  }
+  renderAchievements();
+}
+
+function renderAchievements() {
+  const grid = document.getElementById('achievements-grid');
+  const recent = document.getElementById('recent-achievements');
+  if (!grid) return;
+
+  grid.innerHTML = ACHIEVEMENTS_DEF.map(a => {
+    const unlocked = GS.achievements[a.id];
+    return `
+    <div style="background:${unlocked?'linear-gradient(135deg,var(--surface),#1a1508)':'var(--bg3)'};border:1px solid ${unlocked?'var(--gold-dim)':'var(--border)'};border-radius:var(--radius);padding:14px;text-align:center;opacity:${unlocked?1:0.4}">
+      <div style="font-size:28px;margin-bottom:6px">${a.icon}</div>
+      <div style="font-size:12px;font-weight:500;color:${unlocked?'var(--gold-light)':'var(--text)'}">${a.name}</div>
+      <div style="font-size:10px;color:var(--text-dim);margin-top:2px">${a.desc}</div>
+      ${unlocked ? '<div style="font-size:9px;color:var(--gold);margin-top:4px">✓ DÉBLOQUÉ</div>' : ''}
+    </div>`;
+  }).join('');
+
+  if (recent) {
+    const unlocked = ACHIEVEMENTS_DEF.filter(a => GS.achievements[a.id]).slice(-4);
+    recent.innerHTML = unlocked.map(a => `
+      <div class="ach-item unlocked"><div class="ach-icon">${a.icon}</div><div class="ach-name">${a.name}</div></div>
+    `).join('') || '<div class="dim small" style="grid-column:1/-1;text-align:center;padding:8px">Aucun succès</div>';
+  }
+
+  const badge = document.getElementById('ach-badge');
+  const count = Object.values(GS.achievements).filter(Boolean).length;
+  if (badge) badge.textContent = count > 0 ? count : '';
+}
+
+// ════════════════════════════════════════════════
+//  QUESTS
+// ════════════════════════════════════════════════
+function initQuests() {
+  if (GS.quests.length > 0) return;
+  GS.quests = QUESTS_DEF.map(q => ({ ...q, progress: 0, completed: false }));
+}
+
+function checkQuestProgress() {
+  GS.quests.forEach(q => {
+    if (q.completed) return;
+    let current = 0;
+    if (q.target === 'cash') current = GS.cash;
+    if (q.target === 'spins') current = GS.casinoStats.spinsTotal;
+    if (q.target === 'crypto_any') current = Object.values(GS.crypto).filter(a=>a.held>0).length;
+    if (q.target === 'property_count') current = Object.values(GS.properties).filter(Boolean).length;
+    if (q.target === 'sports_wins') current = sportsWins;
+    q.progress = current;
+    if (current >= q.value && !q.completed) {
+      q.completed = true;
+      if (q.reward.xp) gainXP(q.reward.xp);
+      if (q.reward.tokens) GS.tokens += q.reward.tokens;
+      if (q.reward.cash) GS.cash += q.reward.cash;
+      toast(`✅ QUÊTE COMPLÉTÉE: ${q.name}! Récompenses obtenues.`, 'win');
+    }
+  });
+  renderRightbar();
+}
+
+// ════════════════════════════════════════════════
+//  NEWS
+// ════════════════════════════════════════════════
+const NEWS_TEMPLATES = [
+  { tag:'bull', texts:['📈 Le marché crypto connaît une hausse spectaculaire','🚀 BTC franchit un nouveau sommet historique','📊 Les investisseurs optimistes sur les cryptos'] },
+  { tag:'crisis', texts:['💥 Crash soudain sur le marché crypto','⚠️ Volatilité extrême détectée sur les marchés','🔴 Sell-off massif en cours sur les actions'] },
+  { tag:'event', texts:['⚖️ Nouvelle régulation crypto annoncée','🏛️ La banque centrale hausse ses taux','🌐 Événement économique mondial en cours'] },
+  { tag:'casino', texts:['🎰 Jackpot record au Casino Imperial!','🃏 Tournoi de poker VIP ce soir','🎡 Nouvelles tables de roulette disponibles'] },
+];
+
+function initNews() {
+  GS.news = [];
+  for (let i = 0; i < 5; i++) addNews();
+}
+
+function addNews(label, type) {
+  if (label) {
+    GS.news.unshift({ tag: type || 'event', text: label, time: new Date().toLocaleTimeString('fr-FR') });
+  } else {
+    const cat = NEWS_TEMPLATES[Math.floor(Math.random()*NEWS_TEMPLATES.length)];
+    const text = cat.texts[Math.floor(Math.random()*cat.texts.length)];
+    GS.news.unshift({ tag: cat.tag, text, time: new Date().toLocaleTimeString('fr-FR') });
+  }
+  GS.news = GS.news.slice(0, 20);
+  renderRightbar();
+}
+
+// ════════════════════════════════════════════════
+//  LEADERBOARD
+// ════════════════════════════════════════════════
+let leaderboard = [];
+function initLeaderboard() {
+  const names = ['Elara V.','Thomas M.','Sakura K.','Carlos R.','Nina B.','Alex D.','Priya S.','Liu W.'];
+  leaderboard = names.map((name, i) => ({
+    name, wealth: Math.floor(Math.random() * 5000000 + 100000), rank: i+1
+  })).sort((a,b) => b.wealth - a.wealth);
+  leaderboard.forEach((p,i) => p.rank = i+1);
+}
+
+function getLeaderboardWithPlayer() {
+  const playerEntry = { name: GS.playerName || 'Vous', wealth: getTotalWealth(), isPlayer: true };
+  const all = [...leaderboard.filter(p => !p.isPlayer), playerEntry];
+  all.sort((a,b) => b.wealth - a.wealth);
+  all.forEach((p,i) => p.rank = i+1);
+  return all;
+}
+
+// ════════════════════════════════════════════════
+//  RIGHTBAR
+// ════════════════════════════════════════════════
+function renderRightbar() {
+  const news = document.getElementById('news-feed');
+  if (news) {
+    news.innerHTML = GS.news.slice(0,6).map(n => `
+      <div class="news-item">
+        <span class="news-tag ${n.tag}">${n.tag.toUpperCase()}</span>
+        ${n.text}
+        <div style="font-size:8px;color:var(--text-muted);margin-top:2px">${n.time}</div>
+      </div>
+    `).join('');
+  }
+
+  const quests = document.getElementById('quests-list');
+  if (quests) {
+    const active = GS.quests.filter(q => !q.completed).slice(0,4);
+    quests.innerHTML = active.map(q => `
+      <div class="quest-item">
+        <div class="quest-name">${q.name}</div>
+        <div class="quest-bar"><div class="quest-fill" style="width:${Math.min(100,(q.progress/q.value)*100)}%"></div></div>
+        <div class="quest-progress">${formatNum(q.progress)} / ${formatNum(q.value)}</div>
+      </div>
+    `).join('') || '<div class="dim small" style="padding:4px">Toutes complétées! 🎉</div>';
+  }
+
+  const lb = document.getElementById('leaderboard-mini');
+  if (lb) {
+    const all = getLeaderboardWithPlayer().slice(0,5);
+    lb.innerHTML = all.map(p => `
+      <div class="leaderboard-row" style="${p.isPlayer?'background:rgba(201,168,76,.05);border-radius:4px':''}">
+        <div class="lb-rank ${p.rank<=3?'gold':''}">${p.rank}</div>
+        <div class="lb-name" style="${p.isPlayer?'color:var(--gold-light)':''}">
+          ${p.rank===1?'👑 ':p.rank===2?'🥈 ':p.rank===3?'🥉 ':''}${p.name}${p.isPlayer?' (Vous)':''}
+        </div>
+        <div class="lb-value">$${formatNum(p.wealth)}</div>
+      </div>
+    `).join('');
+  }
+}
+
+// ════════════════════════════════════════════════
+//  PROFILE
+// ════════════════════════════════════════════════
+function renderProfile() {
+  const pName = document.getElementById('profile-name');
+  const pTitle = document.getElementById('profile-title');
+  const pStats = document.getElementById('profile-stats');
+  const fh = document.getElementById('full-history');
+  const lbFull = document.getElementById('leaderboard-full');
+
+  if (pName) pName.textContent = GS.playerName || document.getElementById('player-name').textContent;
+  if (pTitle) pTitle.textContent = document.getElementById('player-title').textContent;
+
+  if (pStats) {
+    pStats.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px">
+        <div style="padding:6px;background:var(--bg3);border-radius:6px"><div class="dim small">Niveau</div><div class="gold">${GS.level}</div></div>
+        <div style="padding:6px;background:var(--bg3);border-radius:6px"><div class="dim small">XP Total</div><div class="gold">${GS.xp}</div></div>
+        <div style="padding:6px;background:var(--bg3);border-radius:6px"><div class="dim small">Patrimoine</div><div class="gold">$${formatNum(getTotalWealth())}</div></div>
+        <div style="padding:6px;background:var(--bg3);border-radius:6px"><div class="dim small">Réputation</div><div class="gold">${document.getElementById('rep-stars').textContent}</div></div>
+        <div style="padding:6px;background:var(--bg3);border-radius:6px"><div class="dim small">Parties</div><div class="gold">${GS.casinoStats.totalPlayed}</div></div>
+        <div style="padding:6px;background:var(--bg3);border-radius:6px"><div class="dim small">Plus gros gain</div><div class="gold">$${formatNum(GS.casinoStats.biggestWin)}</div></div>
+      </div>`;
+  }
+
+  if (fh) {
+    const hist = [...GS.sportsHistory, 
+      `💵 Cash actuel: $${formatNum(GS.cash)}`,
+      `📊 Patrimoine: $${formatNum(getTotalWealth())}`,
+      `🎰 Parties: ${GS.casinoStats.totalPlayed}`,
+    ];
+    fh.innerHTML = hist.map(h => `<div style="padding:3px 0;border-bottom:1px solid var(--border)">${h}</div>`).join('');
+  }
+
+  if (lbFull) {
+    const all = getLeaderboardWithPlayer();
+    lbFull.innerHTML = all.map(p => `
+      <div class="leaderboard-row" style="${p.isPlayer?'background:rgba(201,168,76,.08);border-radius:4px;padding:4px 6px':''}">
+        <div class="lb-rank ${p.rank<=3?'gold':''}" style="font-size:12px">${p.rank===1?'👑':p.rank===2?'🥈':p.rank===3?'🥉':p.rank}</div>
+        <div class="lb-name" style="${p.isPlayer?'color:var(--gold-light);font-weight:500':''}">
+          ${p.name}${p.isPlayer?' (VOUS)':''}
+        </div>
+        <div class="lb-value">$${formatNum(p.wealth)}</div>
+      </div>
+    `).join('');
+  }
+}
+
+function changeName() {
+  const inp = document.getElementById('name-input');
+  if (!inp?.value.trim()) return;
+  GS.playerName = inp.value.trim();
+  document.getElementById('player-name').textContent = GS.playerName;
+  inp.value = '';
+  toast(`✅ Nom changé: ${GS.playerName}`, 'info');
+  renderProfile();
+}
+
+// ════════════════════════════════════════════════
+//  UTILITIES
+// ════════════════════════════════════════════════
+function exchangeTokens() {
+  const amount = parseInt(prompt('Convertir combien de $ en jetons? (1$ = 10 jetons)')) || 0;
+  if (amount <= 0 || GS.cash < amount) { toast('Montant invalide ou fonds insuffisants','lose'); return; }
+  GS.cash -= amount;
+  GS.tokens += amount * 10;
+  toast(`🪙 +${amount*10} jetons obtenus!`, 'info');
+  updateTopbar();
+  document.getElementById('tokens-display').textContent = Math.floor(GS.tokens);
+}
+
+function checkDailyChallenges() {
+  const now = Date.now();
+  const day = 86400000;
+  if (now - GS.dailyChallenges.lastReset > day) {
+    GS.dailyChallenges.lastReset = now;
+    GS.dailyChallenges.challenges = [
+      { text:'Jouer 10 fois aux machines à sous', done:false },
+      { text:'Gagner un pari sportif', done:false },
+      { text:'Investir en crypto', done:false },
+    ];
+    toast('📅 Nouveaux défis quotidiens disponibles!', 'info');
+  }
+}
+
+// ════════════════════════════════════════════════
+//  LIFESTYLE — ACHATS DE LUXE
+// ════════════════════════════════════════════════
+function renderLifestyle() {
+  const grid = document.getElementById('lifestyle-grid');
+  const countEl = document.getElementById('lifestyle-count');
+  const valueEl = document.getElementById('lifestyle-value');
+  if (!grid) return;
+
+  // Count total owned across all quantities
+  let totalOwned = 0, totalValue = 0;
+  LIFESTYLE_ITEMS.forEach(it => {
+    const qty = GS.lifestyle[it.id] || 0;
+    totalOwned += qty;
+    totalValue += qty * it.price;
+  });
+  if (countEl) countEl.textContent = totalOwned;
+  if (valueEl) valueEl.textContent = '$' + formatNum(totalValue);
+
+  const catColors = {
+    'véhicule':'#4fc3f7','nautique':'#00bcd4','aviation':'#7c4dff',
+    'luxe':'#c9a84c','résidence':'#00e676','prestige':'#ff6b6b'
+  };
+  const cats = [...new Set(LIFESTYLE_ITEMS.map(i=>i.cat))];
+
+  // Category filter bar
+  const activeCat = window._lifestyleCat || 'tous';
+  const filterBar = `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+      <button onclick="window._lifestyleCat='tous';renderLifestyle()" style="padding:4px 12px;border-radius:20px;border:1px solid ${activeCat==='tous'?'var(--gold)':'var(--border)'};background:${activeCat==='tous'?'var(--gold-dim)':'var(--bg3)'};color:${activeCat==='tous'?'var(--gold-light)':'var(--text-dim)'};cursor:pointer;font-size:10px">Tous</button>
+      ${cats.map(c=>`<button onclick="window._lifestyleCat='${c}';renderLifestyle()" style="padding:4px 12px;border-radius:20px;border:1px solid ${activeCat===c?catColors[c]:'var(--border)'};background:${activeCat===c?'rgba('+hexToRgb(catColors[c])+',0.15)':'var(--bg3)'};color:${activeCat===c?catColors[c]:'var(--text-dim)'};cursor:pointer;font-size:10px">${c}</button>`).join('')}
+    </div>`;
+
+  const filtered = activeCat === 'tous' ? LIFESTYLE_ITEMS : LIFESTYLE_ITEMS.filter(i=>i.cat===activeCat);
+
+  grid.outerHTML; // just reference
+  const container = document.getElementById('lifestyle-grid');
+
+  const cards = filtered.map(item => {
+    const qty = GS.lifestyle[item.id] || 0;
+    const canAfford = GS.cash >= item.price;
+    const catColor = catColors[item.cat] || '#888';
+    const isUltra = item.price >= 1e9;
+    return `
+    <div style="background:${qty>0?`linear-gradient(135deg,${catColors[item.cat]}18,#050a0f)`:'linear-gradient(135deg,var(--surface),var(--bg3))'};border:2px solid ${qty>0?catColor:'var(--border)'};border-radius:14px;padding:14px;position:relative;transition:border-color .3s;overflow:hidden">
+      ${isUltra?`<div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,${catColor},transparent)"></div>`:''}
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:${catColor}">${item.cat}</div>
+        ${qty>0?`<div style="background:${catColor};color:#000;font-size:9px;padding:1px 7px;border-radius:10px;font-weight:700">×${qty}</div>`:''}
+      </div>
+      <div style="font-size:${isUltra?'28':'32'}px;margin-bottom:6px">${item.icon}</div>
+      <div style="font-family:var(--font-display);font-size:${isUltra?'13':'15'}px;letter-spacing:1px;color:var(--text);margin-bottom:3px">${item.name}</div>
+      <div style="font-size:9px;color:var(--text-dim);margin-bottom:8px">${item.desc}</div>
+      <div style="font-family:var(--font-display);font-size:${isUltra?'14':'17'}px;color:${isUltra?catColor:'var(--gold-light)'};margin-bottom:10px">${formatLifePrice(item.price)}</div>
+      <div style="display:flex;gap:5px">
+        <button onclick="buyLifestyle('${item.id}')" style="flex:1;padding:6px;border-radius:7px;border:1px solid ${canAfford?catColor:'var(--border)'};background:${canAfford?`rgba(${hexToRgb(catColor)},0.15)`:'var(--bg3)'};color:${canAfford?catColor:'var(--text-muted)'};font-size:10px;cursor:${canAfford?'pointer':'not-allowed'}">
+          ${canAfford?'✓ Acheter':'🔒'}
+        </button>
+        ${qty>0?`<button onclick="sellLifestyle('${item.id}')" style="padding:6px 8px;border-radius:7px;border:1px solid var(--red-dim);background:var(--red-dim);color:var(--red);font-size:10px;cursor:pointer" title="Vendre 1">💸</button>`:''}
+      </div>
+      ${qty>0?`<div style="font-size:9px;color:var(--text-muted);text-align:center;margin-top:4px">Revente: ${formatLifePrice(Math.floor(item.price*0.7*qty))}</div>`:''}
+    </div>`;
+  }).join('');
+
+  container.innerHTML = filterBar + `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">${cards}</div>`;
+}
+
+function formatLifePrice(n) {
+  if (n >= 1e12) return '$' + (n/1e12).toFixed(0) + 'T';
+  if (n >= 1e9)  return '$' + (n/1e9).toFixed(1) + 'B';
+  if (n >= 1e6)  return '$' + (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3)  return '$' + (n/1e3).toFixed(0) + 'K';
+  return '$' + n;
+}
+
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return `${r},${g},${b}`;
+}
+
+function buyLifestyle(id) {
+  const item = LIFESTYLE_ITEMS.find(i => i.id === id);
+  if (!item) return;
+  if (GS.cash < item.price) { toast('Fonds insuffisants!', 'lose'); return; }
+  GS.cash -= item.price;
+  GS.lifestyle[id] = (GS.lifestyle[id] || 0) + 1;
+  const qty = GS.lifestyle[id];
+  toast(`${item.icon} ${item.name}${qty>1?' (×'+qty+')':''} acheté!`, 'win');
+  if (item.price >= 1e9) spawnCoins(20);
+  else if (item.price >= 1e6) spawnCoins(8);
+  else spawnCoins(3);
+  updateTopbar();
+  renderLifestyle();
+}
+
+function sellLifestyle(id) {
+  const item = LIFESTYLE_ITEMS.find(i => i.id === id);
+  if (!item || !GS.lifestyle[id]) return;
+  const resale = Math.floor(item.price * 0.7);
+  GS.cash += resale;
+  GS.lifestyle[id]--;
+  if (GS.lifestyle[id] <= 0) delete GS.lifestyle[id];
+  toast(`${item.icon} Vendu pour ${formatLifePrice(resale)}`, 'info');
+  updateTopbar();
+  renderLifestyle();
+}
+
+// ════════════════════════════════════════════════
+//  LOANS — SYSTÈME D'EMPRUNTS
+// ════════════════════════════════════════════════
+function renderLoans() {
+  renderLoanSummary();
+  renderLoanOffers();
+  renderActiveLoans();
+}
+
+function renderLoanSummary() {
+  const el = document.getElementById('loans-summary');
+  if (!el) return;
+  const totalDebt = (GS.loans || []).reduce((s,l) => s + l.remaining, 0);
+  const monthlyDue = (GS.loans || []).reduce((s,l) => s + l.monthlyPayment, 0);
+  const creditScore = Math.max(300, 800 - Math.floor(totalDebt / 1000));
+  const scoreColor = creditScore > 650 ? 'var(--green)' : creditScore > 500 ? 'var(--orange)' : 'var(--red)';
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+      <div>
+        <div class="label">Dette totale</div>
+        <div style="font-family:var(--font-display);font-size:22px;color:${totalDebt>0?'var(--red)':'var(--green)'}">${totalDebt>0?'-$'+formatNum(totalDebt):'$0'}</div>
+      </div>
+      <div>
+        <div class="label">Remboursement/mois</div>
+        <div style="font-family:var(--font-display);font-size:22px;color:var(--orange)">$${formatNum(monthlyDue)}</div>
+      </div>
+      <div>
+        <div class="label">Score de crédit</div>
+        <div style="font-family:var(--font-display);font-size:22px;color:${scoreColor}">${creditScore}</div>
+        <div style="font-size:9px;color:var(--text-dim)">${creditScore>700?'Excellent':creditScore>550?'Moyen':'Mauvais'}</div>
+      </div>
+    </div>`;
+}
+
+function renderLoanOffers() {
+  const el = document.getElementById('loan-offers');
+  if (!el) return;
+  el.innerHTML = LOAN_OFFERS.map(offer => {
+    const monthly = Math.ceil(offer.amount * (1 + offer.rate) / offer.months);
+    const alreadyActive = (GS.loans||[]).find(l => l.offerId === offer.id);
+    return `
+    <div style="background:var(--surface);border:1px solid ${offer.id==='shark'?'var(--red-dim)':'var(--border)'};border-radius:10px;padding:12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div>
+          <div style="font-size:14px">${offer.icon} ${offer.name}</div>
+          ${offer.warning ? `<div style="font-size:9px;color:var(--red)">${offer.warning}</div>` : ''}
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:var(--font-display);font-size:18px;color:var(--gold-light)">$${formatNum(offer.amount)}</div>
+          <div style="font-size:9px;color:var(--text-dim)">Taux ${(offer.rate*100).toFixed(0)}% / ${offer.months} mois</div>
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--text-dim);margin-bottom:8px">
+        Remboursement: <span style="color:var(--orange)">$${formatNum(monthly)}/mois</span> — Total: <span style="color:var(--red)">$${formatNum(monthly*offer.months)}</span>
+      </div>
+      ${alreadyActive
+        ? `<div style="font-size:10px;color:var(--text-muted);text-align:center;padding:4px">Emprunt actif</div>`
+        : `<button onclick="takeLoan('${offer.id}')" style="width:100%;padding:8px;border-radius:7px;border:1px solid var(--gold-dim);background:linear-gradient(135deg,var(--gold-dim),#1a1005);color:var(--gold-light);font-size:12px;cursor:pointer">💰 Emprunter</button>`
+      }
+    </div>`;
+  }).join('');
+}
+
+function renderActiveLoans() {
+  const el = document.getElementById('active-loans');
+  if (!el) return;
+  const loans = GS.loans || [];
+  if (!loans.length) {
+    el.innerHTML = '<div style="color:var(--text-muted);font-size:11px;padding:8px">Aucun emprunt actif.</div>';
+    return;
+  }
+  el.innerHTML = loans.map((loan, i) => {
+    const pct = Math.max(0, Math.min(100, 100 - (loan.remaining / loan.original * 100)));
+    return `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:13px">${loan.icon} ${loan.name}</span>
+        <span style="color:var(--red);font-family:var(--font-display)">-$${formatNum(loan.remaining)}</span>
+      </div>
+      <div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:6px">
+        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--green),var(--gold));transition:width .5s"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-bottom:8px">
+        <span>${pct.toFixed(0)}% remboursé</span>
+        <span>$${formatNum(loan.monthlyPayment)}/mois</span>
+      </div>
+      <button onclick="repayLoanNow(${i})" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--green-dim);background:var(--green-dim);color:var(--green);font-size:11px;cursor:pointer" ${GS.cash<loan.remaining?'disabled':''}>
+        ✓ Rembourser tout ($${formatNum(loan.remaining)})
+      </button>
+    </div>`;
+  }).join('');
+}
+
+function takeLoan(offerId) {
+  const offer = LOAN_OFFERS.find(o => o.id === offerId);
+  if (!offer) return;
+  const monthly = Math.ceil(offer.amount * (1 + offer.rate) / offer.months);
+  GS.cash += offer.amount;
+  if (!GS.loans) GS.loans = [];
+  GS.loans.push({
+    offerId: offer.id,
+    name: offer.name,
+    icon: offer.icon,
+    amount: offer.amount,
+    original: offer.amount * (1 + offer.rate),
+    remaining: offer.amount * (1 + offer.rate),
+    monthlyPayment: monthly,
+    rate: offer.rate,
+  });
+  toast(`${offer.icon} Emprunt de $${formatNum(offer.amount)} accordé!`, 'win');
+  updateTopbar();
+  renderLoans();
+}
+
+function repayLoanNow(idx) {
+  const loan = GS.loans[idx];
+  if (!loan) return;
+  if (GS.cash < loan.remaining) { toast('Fonds insuffisants!', 'lose'); return; }
+  GS.cash -= loan.remaining;
+  GS.loans.splice(idx, 1);
+  toast(`✅ Emprunt remboursé intégralement!`, 'win');
+  updateTopbar();
+  renderLoans();
+}
+
+// ════════════════════════════════════════════════
+//  PARTICLES
+// ════════════════════════════════════════════════
+function initParticles() {
+  const container = document.getElementById('particles');
+  for (let i = 0; i < 15; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.cssText = `left:${Math.random()*100}%;animation-duration:${8+Math.random()*12}s;animation-delay:${Math.random()*10}s;width:${Math.random()*2+1}px;height:${Math.random()*2+1}px;opacity:0.3`;
+    container.appendChild(p);
+  }
+}
+
+// ════════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════════
+function toast(msg, type='info') {
+  const container = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  container.appendChild(t);
+  setTimeout(() => {
+    t.style.animation = 'fadeOut .3s ease forwards';
+    setTimeout(() => t.remove(), 300);
+  }, 3500);
+}
+
+// ════════════════════════════════════════════════
+//  SLOT JACKPOT BADGE PULSE
+// ════════════════════════════════════════════════
+setInterval(() => {
+  const badge = document.getElementById('jackpot-badge');
+  if (badge) {
+    badge.style.background = badge.style.background === 'var(--gold)' ? '' : 'var(--gold)';
+  }
+}, 1500);
+
+// ════════════════════════════════════════════════
+//  START
+// ════════════════════════════════════════════════
+init();
+
+// Draw roulette on load in case
+setTimeout(() => {
+  const cvs = document.getElementById('roulette-canvas');
+  if (cvs) drawRoulette();
+}, 500);
+</script>
+</body>
+</html>
