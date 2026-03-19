@@ -423,6 +423,7 @@ select.input option{background:var(--bg2)}
       <div class="xp-bar"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
     </div>
     <button class="tb-btn" onclick="saveGame()">💾 SAUVER</button>
+    <button class="tb-btn" onclick="resetGame()" style="background:linear-gradient(135deg,#5a0010,#3a000a);color:var(--red);border:1px solid var(--red-dim)">🔄 RESET</button>
   </div>
 
   <!-- SIDEBAR -->
@@ -699,7 +700,7 @@ select.input option{background:var(--bg2)}
 //  GAME STATE
 // ════════════════════════════════════════════════
 const GS = {
-  cash: 1500,
+  cash: 5000,
   tokens: 100,
   level: 1,
   xp: 0,
@@ -883,6 +884,12 @@ function saveGame() {
   GS.lastSave = Date.now();
   localStorage.setItem('casino_empire_v3', JSON.stringify(GS));
   toast('💾 Partie sauvegardée!', 'info');
+}
+
+function resetGame() {
+  if (!confirm('⚠️ Réinitialiser complètement la partie ? Tout sera perdu.')) return;
+  localStorage.removeItem('casino_empire_v3');
+  location.reload();
 }
 
 function loadGame() {
