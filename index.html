@@ -441,6 +441,8 @@ select.input option{background:var(--bg2)}
     <div class="sb-section">
       <div class="sb-section-title">Principal</div>
       <div class="sb-item active" onclick="showView('dashboard')" id="nav-dashboard"><span class="icon">🏠</span><span class="name">Tableau de bord</span></div>
+      <div class="sb-item" onclick="showView('portfolio')" id="nav-portfolio"><span class="icon">💼</span><span class="name">Mon Patrimoine</span></div>
+      <div class="sb-item" onclick="showView('companies')" id="nav-companies"><span class="icon">🏭</span><span class="name">Entreprises</span></div>
       <div class="sb-item" onclick="showView('casino')" id="nav-casino"><span class="icon">🎰</span><span class="name">Casino</span><span class="badge gold" id="jackpot-badge">JP!</span></div>
       <div class="sb-item" onclick="showView('sports')" id="nav-sports"><span class="icon">⚽</span><span class="name">Paris Sportifs</span></div>
     </div>
@@ -671,6 +673,32 @@ select.input option{background:var(--bg2)}
       <div id="underground-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div>
     </div>
 
+    <!-- PORTFOLIO -->
+    <div class="view" id="view-portfolio">
+      <div class="card-title" style="font-family:var(--font-display);font-size:22px;letter-spacing:3px;color:var(--gold-light);margin-bottom:16px">💼 MON PATRIMOINE</div>
+      <!-- Net worth banner -->
+      <div id="portfolio-banner" class="card mb" style="background:linear-gradient(135deg,#0a0f05,#12180a);border-color:var(--gold-dim)"></div>
+      <!-- Wealth chart -->
+      <div class="card mb">
+        <div class="chart-header">
+          <div class="chart-title">📈 Évolution du patrimoine net</div>
+        </div>
+        <canvas id="portfolioChart" height="120"></canvas>
+      </div>
+      <!-- Income breakdown -->
+      <div id="portfolio-income" class="card mb"></div>
+      <!-- Asset categories grid -->
+      <div id="portfolio-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px"></div>
+    </div>
+
+    <!-- COMPANIES -->
+    <div class="view" id="view-companies">
+      <div class="card-title" style="font-family:var(--font-display);font-size:22px;letter-spacing:3px;color:var(--gold-light);margin-bottom:4px">🏭 MES ENTREPRISES</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:16px">Achetez des entreprises, améliorez chaque département pour maximiser les revenus.</div>
+      <div id="companies-income-bar" class="card mb" style="background:var(--bg3)"></div>
+      <div id="companies-grid" style="display:grid;grid-template-columns:1fr;gap:16px"></div>
+    </div>
+
   </div><!-- /main -->
 
   <!-- RIGHTBAR -->
@@ -737,12 +765,13 @@ const GS = {
     'FinBank': { held: 0, price: 440, history: [], div: 0.015 }
   },
   properties: {},
-  propertyLevels: {},  // { id: level } default 1
-  loans: [],           // { id, amount, remaining, rate, monthlyPayment, taken }
-  lifestyle: {},       // { car1: true, ... }
-  underground: {},     // { op_id: true }
-  undergroundLevels:{},// { op_id: level }
-  heatLevel: 0,        // 0-100 police attention
+  propertyLevels: {},
+  loans: [],
+  lifestyle: {},
+  underground: {},
+  undergroundLevels:{},
+  heatLevel: 0,
+  companies: {},        // { company_id: { level, depts: { dept_id: level } } }
   jackpot: 50000,
   casinoStats: { totalPlayed: 0, totalWon: 0, totalLost: 0, biggestWin: 0, spinsTotal: 0 },
   sportsHistory: [],
@@ -868,6 +897,142 @@ const LOAN_OFFERS = [
   { id:'shark',   name:'Prêt Usurier',    amount:5000,    rate:0.50, months:3,  icon:'🦈', warning:'Taux prédateur!' },
 ];
 
+// ─── COMPANIES ───────────────────────────────────────────────────────────────
+const COMPANIES = [
+  {
+    id: 'media', name: 'MediaGroup', icon: '📺', sector: 'Médias',
+    desc: 'Chaînes TV, journaux, streaming — empire de l\'information',
+    price: 50000, baseIncome: 5, color: '#4fc3f7',
+    depts: [
+      { id:'content',  name:'Contenu',         icon:'🎬', desc:'Studios de production',       baseMult:1.0, upgCost:20000,  upgMult:1.6 },
+      { id:'marketing',name:'Marketing',        icon:'📣', desc:'Campagnes pub mondiales',    baseMult:0.8, upgCost:15000,  upgMult:1.5 },
+      { id:'tech',     name:'Tech & Streaming', icon:'💻', desc:'Plateforme streaming',       baseMult:1.2, upgCost:40000,  upgMult:1.7 },
+      { id:'distrib',  name:'Distribution',     icon:'🌐', desc:'Réseau de diffusion',        baseMult:0.6, upgCost:10000,  upgMult:1.5 },
+    ]
+  },
+  {
+    id: 'fastfood', name: 'BurgerChain™', icon: '🍔', sector: 'Restauration',
+    desc: 'Franchise fast-food mondiale — 50 000 restaurants, des milliards de clients',
+    price: 80000, baseIncome: 8, color: '#ff9800',
+    depts: [
+      { id:'kitchen',  name:'Cuisine',          icon:'👨‍🍳', desc:'Qualité & standardisation',  baseMult:1.0, upgCost:30000,  upgMult:1.6 },
+      { id:'franchise',name:'Franchise',        icon:'🏪', desc:'Ouverture de nouveaux sites',baseMult:1.3, upgCost:50000,  upgMult:1.7 },
+      { id:'delivery', name:'Livraison',        icon:'🛵', desc:'App mobile & drones',        baseMult:1.1, upgCost:40000,  upgMult:1.6 },
+      { id:'brand',    name:'Image de marque',  icon:'⭐', desc:'Publicité & sponsoring',     baseMult:0.9, upgCost:25000,  upgMult:1.5 },
+    ]
+  },
+  {
+    id: 'pharma', name: 'PharmaCorp', icon: '💊', sector: 'Santé',
+    desc: 'Médicaments, vaccins, biotech — la santé mondiale vous appartient',
+    price: 200000, baseIncome: 18, color: '#00e676',
+    depts: [
+      { id:'rd',       name:'R&D',              icon:'🔬', desc:'Recherche & développement',  baseMult:1.5, upgCost:80000,  upgMult:1.8 },
+      { id:'produc',   name:'Production',       icon:'🏭', desc:'Usines pharmaceutiques',     baseMult:1.0, upgCost:50000,  upgMult:1.6 },
+      { id:'lobby',    name:'Lobbying',         icon:'🏛️', desc:'Relations gouvernementales', baseMult:0.8, upgCost:60000,  upgMult:1.7 },
+      { id:'export',   name:'Export Mondial',   icon:'✈️', desc:'Distribution internationale', baseMult:1.2, upgCost:90000,  upgMult:1.7 },
+    ]
+  },
+  {
+    id: 'fashion', name: 'LuxurHouse', icon: '👗', sector: 'Mode & Luxe',
+    desc: 'Maison de couture, parfums, accessoires — le luxe absolu',
+    price: 350000, baseIncome: 30, color: '#f48fb1',
+    depts: [
+      { id:'design',   name:'Design',           icon:'✏️', desc:'Créateurs & collections',   baseMult:1.4, upgCost:120000, upgMult:1.8 },
+      { id:'boutiques',name:'Boutiques',        icon:'🛍️', desc:'500 boutiques mondiales',   baseMult:1.2, upgCost:100000, upgMult:1.7 },
+      { id:'celebrity',name:'Ambassadeurs',     icon:'🌟', desc:'Stars & influenceurs',      baseMult:1.0, upgCost:80000,  upgMult:1.6 },
+      { id:'perfume',  name:'Parfumerie',       icon:'🌸', desc:'Lignes de parfums exclusifs',baseMult:0.9, upgCost:60000,  upgMult:1.6 },
+    ]
+  },
+  {
+    id: 'techgiant', name: 'TechGiant Corp', icon: '🤖', sector: 'Technologie',
+    desc: 'IA, cloud, hardware — la prochaine Silicon Valley',
+    price: 500000, baseIncome: 45, color: '#bb86fc',
+    depts: [
+      { id:'ai',       name:'Intelligence Art.', icon:'🧠', desc:'Modèles d\'IA propriétaires', baseMult:2.0, upgCost:200000, upgMult:2.0 },
+      { id:'cloud',    name:'Cloud',             icon:'☁️', desc:'Infrastructure mondiale',    baseMult:1.5, upgCost:150000, upgMult:1.8 },
+      { id:'hardware', name:'Hardware',          icon:'⚙️', desc:'Puces & appareils',          baseMult:1.0, upgCost:100000, upgMult:1.6 },
+      { id:'security', name:'Cybersécurité',     icon:'🔐', desc:'Protection & espionnage',   baseMult:0.8, upgCost:80000,  upgMult:1.7 },
+    ]
+  },
+  {
+    id: 'sports', name: 'SportEmpire', icon: '🏆', sector: 'Sport & Entertainment',
+    desc: 'Clubs pro, stades, droits TV — le business du spectacle sportif',
+    price: 800000, baseIncome: 70, color: '#69f0ae',
+    depts: [
+      { id:'clubs',    name:'Clubs Sportifs',   icon:'⚽', desc:'Football, basket, tennis',   baseMult:1.5, upgCost:300000, upgMult:1.8 },
+      { id:'stadiums', name:'Stades & Arènes',  icon:'🏟️', desc:'Capacité 80 000 places',    baseMult:1.2, upgCost:250000, upgMult:1.7 },
+      { id:'tv_rights',name:'Droits TV',        icon:'📡', desc:'Contrats milliardaires',     baseMult:1.8, upgCost:400000, upgMult:1.9 },
+      { id:'merch',    name:'Merchandising',    icon:'👕', desc:'Produits dérivés mondiaux',  baseMult:0.8, upgCost:150000, upgMult:1.6 },
+    ]
+  },
+  {
+    id: 'oil', name: 'PetroMax', icon: '🛢️', sector: 'Énergie',
+    desc: 'Pétrole, gaz, pipelines — l\'or noir vous nourrit',
+    price: 1000000, baseIncome: 100, color: '#ff9800',
+    depts: [
+      { id:'extract',  name:'Extraction',       icon:'⛽', desc:'Forages offshore & onshore',  baseMult:1.5, upgCost:400000, upgMult:1.7 },
+      { id:'refine',   name:'Raffinage',        icon:'🏭', desc:'Raffineries mondiales',       baseMult:1.2, upgCost:300000, upgMult:1.6 },
+      { id:'pipeline', name:'Transport',        icon:'🚢', desc:'Pipelines & tankers',         baseMult:0.8, upgCost:200000, upgMult:1.5 },
+      { id:'trading',  name:'Trading Énergie',  icon:'📊', desc:'Marchés à terme',             baseMult:1.0, upgCost:250000, upgMult:1.8 },
+    ]
+  },
+  {
+    id: 'realestate_co', name: 'PropGroup', icon: '🏗️', sector: 'Promotion Immo.',
+    desc: 'Promotion immobilière mondiale — des tours aux villes entières',
+    price: 2000000, baseIncome: 200, color: '#80cbc4',
+    depts: [
+      { id:'construct', name:'Construction',    icon:'🏚️', desc:'15 chantiers simultanés',    baseMult:1.3, upgCost:800000, upgMult:1.7 },
+      { id:'presales',  name:'Ventes Prestige', icon:'🔑', desc:'Appartements de luxe',       baseMult:1.5, upgCost:1000000,upgMult:1.8 },
+      { id:'reit',      name:'REIT Coté',       icon:'📈', desc:'Fonds coté en bourse',       baseMult:1.0, upgCost:600000, upgMult:1.6 },
+      { id:'smart',     name:'Smart Cities',    icon:'🌆', desc:'Projets urbains entiers',    baseMult:2.0, upgCost:1500000,upgMult:2.0 },
+    ]
+  },
+  {
+    id: 'bank_co', name: 'GlobalBank', icon: '🏦', sector: 'Finance',
+    desc: 'Banque d\'investissement internationale — l\'argent fait l\'argent',
+    price: 5000000, baseIncome: 500, color: '#c9a84c',
+    depts: [
+      { id:'invest',   name:'Banque d\'Inv.',   icon:'📈', desc:'Fusions-acquisitions',        baseMult:2.0, upgCost:2000000, upgMult:1.9 },
+      { id:'private',  name:'Banque Privée',    icon:'🎩', desc:'Clients UHNWI',               baseMult:1.5, upgCost:1500000, upgMult:1.8 },
+      { id:'trading2', name:'Trading Prop.',    icon:'⚡', desc:'HFT & algorithmes',           baseMult:1.8, upgCost:1800000, upgMult:2.0 },
+      { id:'offshore2',name:'Offshore',         icon:'🏝️', desc:'Juridictions favorables',    baseMult:1.0, upgCost:1000000, upgMult:1.7 },
+    ]
+  },
+  {
+    id: 'defense', name: 'ArmsCo', icon: '🛡️', sector: 'Défense',
+    desc: 'Armement, drones, cyberdéfense — les guerres vous enrichissent',
+    price: 10000000, baseIncome: 1000, color: '#ef5350',
+    depts: [
+      { id:'weapons',  name:'Armement',         icon:'⚔️', desc:'Contrats gouvernementaux',    baseMult:2.0, upgCost:4000000, upgMult:1.9 },
+      { id:'drones',   name:'Drones & IA',      icon:'🤖', desc:'Systèmes autonomes',          baseMult:1.8, upgCost:3500000, upgMult:2.0 },
+      { id:'cyber',    name:'Cyber Warfare',    icon:'💻', desc:'Attaques & protection',       baseMult:1.5, upgCost:2500000, upgMult:1.8 },
+      { id:'intel',    name:'Renseignement',    icon:'🕵️', desc:'Données confidentielles',    baseMult:1.2, upgCost:2000000, upgMult:1.7 },
+    ]
+  },
+  {
+    id: 'space', name: 'StarCorp', icon: '🚀', sector: 'Aérospatial',
+    desc: 'Satellites, rockets, tourisme spatial — l\'univers vous appartient',
+    price: 50000000, baseIncome: 5000, color: '#7c4dff',
+    depts: [
+      { id:'launch',   name:'Lanceurs',         icon:'🛸', desc:'Fusées réutilisables',        baseMult:2.0, upgCost:20000000, upgMult:2.0 },
+      { id:'satellite',name:'Satellites',       icon:'🛰️', desc:'Constellation de satellites', baseMult:1.5, upgCost:15000000, upgMult:1.8 },
+      { id:'tourism',  name:'Tourisme Spatial', icon:'👨‍🚀', desc:'Voyages orbitaux $500K/billet',baseMult:1.2, upgCost:10000000, upgMult:1.9 },
+      { id:'defense2', name:'Défense',          icon:'🛡️', desc:'Contrats gouvernementaux',    baseMult:1.0, upgCost:8000000,  upgMult:1.7 },
+    ]
+  },
+  {
+    id: 'ai_corp', name: 'NeuralMind', icon: '🧬', sector: 'IA & Biotech',
+    desc: 'AGI, bioingénierie, manipulation génétique — refaire l\'humain',
+    price: 500000000, baseIncome: 50000, color: '#e040fb',
+    depts: [
+      { id:'agi',      name:'AGI Research',     icon:'🧠', desc:'Intelligence générale artificielle', baseMult:3.0, upgCost:200000000, upgMult:2.5 },
+      { id:'biotech',  name:'Bioingénierie',    icon:'🧬', desc:'Modification génétique',             baseMult:2.0, upgCost:150000000, upgMult:2.2 },
+      { id:'neuro',    name:'Neuralink++',      icon:'⚡', desc:'Interface cerveau-machine',           baseMult:2.5, upgCost:180000000, upgMult:2.3 },
+      { id:'longevity',name:'Longévité',        icon:'♾️', desc:'Immortalité en développement',        baseMult:1.5, upgCost:100000000, upgMult:2.0 },
+    ]
+  },
+];
+
 const ACHIEVEMENTS_DEF = [
   { id:'first_win', icon:'🎉', name:'Premier Gain', desc:'Gagner pour la 1ère fois', unlocked:false },
   { id:'millionaire', icon:'💰', name:'Millionnaire', desc:'Avoir 1 000 000$', unlocked:false },
@@ -967,6 +1132,7 @@ function loadGame() {
     if (!GS.economy) GS.economy = { inflation:1.0, trend:'stable', eventActive:null };
     if (!GS.loans) GS.loans = [];
     if (!GS.lifestyle) GS.lifestyle = {};
+    if (!GS.companies) GS.companies = {};
     if (!GS.propertyLevels) GS.propertyLevels = {};
     if (!GS.underground) GS.underground = {};
     if (!GS.undergroundLevels) GS.undergroundLevels = {};
@@ -1001,13 +1167,20 @@ function generateHistory(base, n, volatility) {
 // ════════════════════════════════════════════════
 function startTicks() {
   setInterval(tickMarkets, 3000);
-  setInterval(tickPassive, 1000);  // every second
+  setInterval(tickPassive, 1000);
   setInterval(tickEvents, 30000);
   setInterval(tickJackpot, 1000);
   setInterval(tickClock, 1000);
   setInterval(() => { if(Math.random()<0.1) addNews(); }, 8000);
   setInterval(autoSave, 60000);
   setInterval(updateWealthHistory, 10000);
+  // Live refresh of active view
+  setInterval(() => {
+    const active = document.querySelector('.view.active');
+    if (!active) return;
+    if (active.id === 'view-portfolio') renderPortfolio();
+    if (active.id === 'view-companies') renderCompanies();
+  }, 2000);
 }
 
 function tickClock() {
@@ -1080,6 +1253,13 @@ function tickPassive() {
       }
     }
   }
+  // Company income
+  if (GS.companies) {
+    for (const [id] of Object.entries(GS.companies)) {
+      const inc = getCompanyIncome(id);
+      if (inc > 0) { GS.cash += inc; passive += inc; }
+    }
+  }
   // Loan repayments (monthly / 30 / 24 / 3600)
   if (GS.loans && GS.loans.length > 0) {
     GS.loans = GS.loans.filter(loan => {
@@ -1103,6 +1283,9 @@ function getPassivePerSec() {
     if (stock.held > 0) passive += stock.held * stock.price * stock.div / (365 * 24 * 3600);
   }
   passive += getUndergroundPerSec();
+  if (GS.companies) {
+    for (const [id] of Object.entries(GS.companies)) passive += getCompanyIncome(id);
+  }
   return passive;
 }
 
@@ -1184,6 +1367,8 @@ function showView(id) {
   if (id === 'lifestyle') renderLifestyle();
   if (id === 'loans') renderLoans();
   if (id === 'underground') renderUnderground();
+  if (id === 'portfolio') renderPortfolio();
+  if (id === 'companies') renderCompanies();
   if (id === 'underground') renderUnderground();
 }
 
@@ -1254,6 +1439,12 @@ function getTotalWealth() {
   }
   // Subtract outstanding debt
   if (GS.loans) total -= GS.loans.reduce((s,l) => s + l.remaining, 0);
+  // Company valuations (10x annual income)
+  if (GS.companies) {
+    for (const [id] of Object.entries(GS.companies)) {
+      total += getCompanyIncome(id) * 3600 * 24 * 365 * 10;
+    }
+  }
   return total;
 }
 
@@ -4111,6 +4302,258 @@ function repayLoanNow(idx) {
   toast(`✅ Emprunt remboursé intégralement!`, 'win');
   updateTopbar();
   renderLoans();
+}
+
+// ════════════════════════════════════════════════
+//  PORTFOLIO — BILAN COMPLET DU PATRIMOINE
+// ════════════════════════════════════════════════
+function renderPortfolio() {
+  const total     = getTotalWealth();
+  const cash      = GS.cash;
+  const cryptoVal = Object.values(GS.crypto).reduce((s,a)=>s+a.held*a.price,0);
+  const stockVal  = Object.values(GS.stocks).reduce((s,a)=>s+a.held*a.price,0);
+  const propVal   = Object.entries(GS.properties).reduce((s,[id,o])=>{ const p=PROPERTIES.find(x=>x.id===id); return s+(p&&o?p.price:0); },0);
+  const lifeVal   = Object.entries(GS.lifestyle||{}).reduce((s,[id,q])=>{ const it=LIFESTYLE_ITEMS.find(x=>x.id===id); return s+(it?it.price*0.7*q:0); },0);
+  const ugVal     = Object.keys(GS.underground||{}).reduce((s,id)=>{ const op=UNDERGROUND_OPS.find(o=>o.id===id); return s+(op?op.price:0); },0);
+  const coVal     = Object.keys(GS.companies||{}).reduce((s,id)=>s+getCompanyIncome(id)*3600*24*365*10,0);
+  const debt      = (GS.loans||[]).reduce((s,l)=>s+l.remaining,0);
+  const perSec    = getPassivePerSec();
+
+  // Banner
+  const banner = document.getElementById('portfolio-banner');
+  if (banner) {
+    const prev = GS.wealthHistory.length > 1 ? GS.wealthHistory[GS.wealthHistory.length-2].v : total;
+    const chg = total - prev;
+    banner.innerHTML = `
+      <div style="text-align:center;padding:10px 0">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:3px;color:var(--gold-dim);margin-bottom:6px">Patrimoine Net Total</div>
+        <div style="font-family:var(--font-display);font-size:42px;color:var(--gold-light);text-shadow:0 0 30px rgba(201,168,76,0.3)">${total<0?'-':''}$${formatNum(Math.abs(total))}</div>
+        <div style="font-size:13px;color:${chg>=0?'var(--green)':'var(--red)'};margin-top:4px">${chg>=0?'▲':'▼'} $${formatNum(Math.abs(chg))} depuis dernière maj</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:8px">Revenus passifs: <span style="color:var(--green)">$${formatNum(perSec,2)}/s</span> = <span style="color:var(--green)">$${formatNum(perSec*3600,0)}/h</span> = <span style="color:var(--gold-light)">$${formatNum(perSec*86400,0)}/jour</span></div>
+      </div>`;
+  }
+
+  // Wealth chart
+  const chartCtx = getCtx('portfolioChart');
+  if (chartCtx && GS.wealthHistory.length > 1) {
+    drawLineChart(chartCtx, GS.wealthHistory.slice(-100).map(e=>e.v), '#c9a84c');
+  }
+
+  // Income breakdown
+  const incEl = document.getElementById('portfolio-income');
+  if (incEl) {
+    const propInc = Object.keys(GS.properties).reduce((s,id)=>s+getPropIncome(id),0);
+    const ugInc   = getUndergroundPerSec();
+    const coInc   = Object.keys(GS.companies||{}).reduce((s,id)=>s+getCompanyIncome(id),0);
+    const stInc   = Object.values(GS.stocks).reduce((s,st)=>s+st.held*st.price*st.div/(365*24*3600),0);
+    const sources = [
+      { label:'🏢 Immobilier',      val: propInc, color:'var(--green)' },
+      { label:'🏭 Entreprises',     val: coInc,   color:'var(--blue)' },
+      { label:'🕵️ Marché Noir',    val: ugInc,   color:'var(--red)' },
+      { label:'📈 Dividendes',      val: stInc,   color:'var(--purple)' },
+    ].filter(s=>s.val>0).sort((a,b)=>b.val-a.val);
+    const totalInc = sources.reduce((s,x)=>s+x.val,0)||1;
+    incEl.innerHTML = `
+      <div style="font-family:var(--font-display);font-size:14px;letter-spacing:2px;color:var(--text-dim);margin-bottom:12px">SOURCES DE REVENUS</div>
+      <div style="display:grid;grid-template-columns:repeat(${Math.min(sources.length||1,4)},1fr);gap:10px;margin-bottom:12px">
+        ${sources.map(s=>`<div style="text-align:center;padding:10px;background:var(--bg3);border-radius:10px;border:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px">${s.label}</div>
+          <div style="font-family:var(--font-display);font-size:16px;color:${s.color}">$${formatNum(s.val,2)}/s</div>
+          <div style="font-size:9px;color:var(--text-muted);margin-top:3px">${(s.val/totalInc*100).toFixed(0)}% du total</div>
+        </div>`).join('')}
+      </div>
+      ${sources.length ? `<div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden;display:flex">
+        ${sources.map(s=>`<div style="height:100%;width:${(s.val/totalInc*100).toFixed(0)}%;background:${s.color};transition:width .5s"></div>`).join('')}
+      </div>` : '<div style="font-size:11px;color:var(--text-muted)">Aucun revenu passif pour l\'instant.</div>'}`;
+  }
+
+  // Asset grid
+  const grid = document.getElementById('portfolio-grid');
+  if (!grid) return;
+  const cats = [
+    { label:'💵 Cash Liquide',          val:cash,    color:'var(--gold-light)', icon:'💵', detail:`Disponible immédiatement`, sub:'' },
+    { label:'₿ Cryptomonnaies',        val:cryptoVal,color:'var(--blue)',       icon:'₿',  detail:cryptoVal>0?Object.entries(GS.crypto).filter(([,a])=>a.held>0).map(([k,a])=>`${k}: ${a.held.toFixed(4)}`).join(' • '):'Aucune position', sub:'' },
+    { label:'📈 Actions & ETF',         val:stockVal, color:'var(--purple)',    icon:'📈', detail:stockVal>0?Object.entries(GS.stocks).filter(([,s])=>s.held>0).map(([k,s])=>`${k}: ×${s.held}`).join(' • '):'Aucune position', sub:'' },
+    { label:'🏢 Immobilier',            val:propVal,  color:'var(--green)',     icon:'🏢', detail:`${Object.values(GS.properties).filter(Boolean).length} bien(s)`, sub:`+$${formatNum(Object.keys(GS.properties).reduce((s,id)=>s+getPropIncome(id),0),2)}/s` },
+    { label:'💎 Style de Vie',           val:lifeVal,  color:'var(--orange)',   icon:'💎', detail:`${Object.values(GS.lifestyle||{}).reduce((s,q)=>s+q,0)} objet(s) (valeur revente 70%)`, sub:'' },
+    { label:'🏭 Entreprises',            val:coVal,    color:'var(--blue)',     icon:'🏭', detail:`${Object.keys(GS.companies||{}).length} entreprise(s) (val. ×10 revenus annuels)`, sub:`+$${formatNum(Object.keys(GS.companies||{}).reduce((s,id)=>s+getCompanyIncome(id),0),2)}/s` },
+    { label:'🕵️ Actifs Illégaux',       val:ugVal,    color:'var(--red)',      icon:'🕵️',detail:`${Object.keys(GS.underground||{}).length} opération(s)`, sub:`+$${formatNum(getUndergroundPerSec(),2)}/s` },
+    { label:'💳 Dettes',                val:-debt,    color:debt>0?'var(--red)':'var(--green)', icon:'💳', detail:`${(GS.loans||[]).length} emprunt(s) actif(s)`, sub:debt>0?`-$${formatNum(debt)} restant`:'' },
+  ];
+
+  grid.innerHTML = cats.map(c => {
+    const pct = total > 0 ? Math.abs(c.val) / Math.abs(total) * 100 : 0;
+    const isNeg = c.val < 0;
+    return `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:0;left:0;width:${Math.min(pct,100)}%;height:3px;background:${c.color}"></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div style="font-size:11px;color:var(--text-dim)">${c.label}</div>
+        <div style="font-size:9px;color:var(--text-muted)">${pct.toFixed(1)}%</div>
+      </div>
+      <div style="font-family:var(--font-display);font-size:22px;color:${c.color};margin-bottom:4px">${isNeg?'-':''}$${formatNum(Math.abs(c.val))}</div>
+      <div style="font-size:10px;color:var(--text-dim);margin-bottom:2px">${c.detail}</div>
+      ${c.sub ? `<div style="font-size:10px;color:${c.color}">${c.sub}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════
+//  COMPANIES — SYSTÈME D'ENTREPRISES
+// ════════════════════════════════════════════════
+function getCompanyIncome(id) {
+  const co = COMPANIES.find(c=>c.id===id);
+  if (!co || !GS.companies[id]) return 0;
+  const state = GS.companies[id];
+  const compLvl = state.level || 1;
+  let totalMult = compLvl; // base multiplier scales with company level
+  // Add dept contributions
+  (co.depts||[]).forEach(d => {
+    const dLvl = (state.depts||{})[d.id] || 0;
+    if (dLvl > 0) totalMult += d.baseMult * Math.pow(d.upgMult, dLvl - 1) * dLvl * 0.5;
+  });
+  return co.baseIncome * totalMult;
+}
+
+function getCompanyUpgradeCost(id) {
+  const co = COMPANIES.find(c=>c.id===id);
+  if (!co) return 0;
+  const lvl = (GS.companies[id]?.level) || 1;
+  return Math.floor(co.price * Math.pow(2.2, lvl));
+}
+
+function getDeptUpgradeCost(coId, deptId) {
+  const co = COMPANIES.find(c=>c.id===coId);
+  if (!co) return 0;
+  const dept = co.depts.find(d=>d.id===deptId);
+  if (!dept) return 0;
+  const lvl = (GS.companies[coId]?.depts?.[deptId]) || 0;
+  return Math.floor(dept.upgCost * Math.pow(1.9, lvl));
+}
+
+function renderCompanies() {
+  const grid = document.getElementById('companies-grid');
+  const bar = document.getElementById('companies-income-bar');
+  if (!grid) return;
+
+  const totalCoInc = Object.keys(GS.companies||{}).reduce((s,id)=>s+getCompanyIncome(id),0);
+  if (bar) bar.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><div class="label">Revenus entreprises /s</div><div style="font-family:var(--font-display);font-size:24px;color:var(--blue)">$${formatNum(totalCoInc,2)}/s</div></div>
+      <div style="text-align:right"><div class="label">Valeur estimée (×10 rev. annuel)</div><div style="font-family:var(--font-display);font-size:20px;color:var(--gold-light)">$${formatNum(totalCoInc*86400*365*10)}</div></div>
+    </div>`;
+
+  grid.innerHTML = COMPANIES.map(co => {
+    const owned = !!GS.companies[co.id];
+    const state = GS.companies[co.id] || { level:0, depts:{} };
+    const compLvl = state.level || 0;
+    const income = getCompanyIncome(co.id);
+    const upCost = getCompanyUpgradeCost(co.id);
+    const canBuy = !owned && GS.cash >= co.price;
+    const canUpg = owned && GS.cash >= upCost;
+
+    const deptHTML = owned ? co.depts.map(d => {
+      const dLvl = (state.depts||{})[d.id] || 0;
+      const dCost = getDeptUpgradeCost(co.id, d.id);
+      const canUpgD = GS.cash >= dCost;
+      const dInc = dLvl > 0 ? d.baseMult * Math.pow(d.upgMult, dLvl-1) * dLvl * 0.5 * co.baseIncome : 0;
+      return `
+      <div style="background:var(--bg3);border:1px solid ${dLvl>0?co.color+'44':'var(--border)'};border-radius:10px;padding:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div>
+            <span style="font-size:16px">${d.icon}</span>
+            <span style="font-size:12px;color:var(--text);margin-left:6px">${d.name}</span>
+            ${dLvl>0?`<span style="font-size:9px;color:${co.color};margin-left:6px;background:${co.color}22;padding:1px 6px;border-radius:8px">NV.${dLvl}</span>`:''}
+          </div>
+          <div style="text-align:right">
+            ${dLvl>0?`<div style="font-size:11px;color:${co.color}">+$${formatNum(dInc,2)}/s</div>`:''}
+          </div>
+        </div>
+        <div style="font-size:9px;color:var(--text-dim);margin-bottom:8px">${d.desc}</div>
+        ${dLvl < 20 ? `
+        <button onclick="upgradeDept('${co.id}','${d.id}')" style="width:100%;padding:6px;border-radius:7px;border:1px solid ${canUpgD?co.color:'var(--border)'};background:${canUpgD?`${co.color}18`:'var(--bg)'};color:${canUpgD?co.color:'var(--text-muted)'};font-size:10px;cursor:${canUpgD?'pointer':'not-allowed'}">
+          ${dLvl===0?'🔓 Déverrouiller':'⬆ Améliorer niv.'+(dLvl+1)} — $${formatNum(dCost)}
+          ${dLvl>0?`<br><span style="opacity:.7;font-size:9px">→ $${formatNum(d.baseMult*Math.pow(d.upgMult,dLvl)*((dLvl+1)*0.5)*co.baseIncome,2)}/s</span>`:''}
+        </button>` : `<div style="text-align:center;font-size:10px;color:${co.color};padding:4px">🏆 MAX</div>`}
+      </div>`;
+    }).join('') : '';
+
+    return `
+    <div style="background:${owned?`linear-gradient(135deg,${co.color}0a,var(--bg3))`:'var(--surface)'};border:2px solid ${owned?co.color+'55':'var(--border)'};border-radius:16px;overflow:hidden">
+      <div style="height:3px;background:${owned?co.color:'transparent'}"></div>
+      <div style="padding:16px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div style="font-size:36px">${co.icon}</div>
+            <div>
+              <div style="font-family:var(--font-display);font-size:18px;letter-spacing:2px;color:var(--text)">${co.name}</div>
+              <div style="font-size:10px;color:${co.color};text-transform:uppercase;letter-spacing:1px">${co.sector}</div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:2px">${co.desc}</div>
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;margin-left:12px">
+            <div style="font-family:var(--font-display);font-size:16px;color:var(--gold-light)">$${formatNum(co.price)}</div>
+            ${owned?`<div style="font-size:11px;color:${co.color};margin-top:2px">$${formatNum(income,2)}/s</div><div style="font-size:9px;color:var(--text-dim)">Niv. ${compLvl}</div>`:''}
+          </div>
+        </div>
+
+        ${!owned
+          ? `<button onclick="buyCompany('${co.id}')" style="width:100%;padding:10px;border-radius:10px;border:1px solid ${canBuy?co.color:'var(--border)'};background:${canBuy?`${co.color}18`:'var(--bg3)'};color:${canBuy?co.color:'var(--text-muted)'};font-family:var(--font-display);font-size:14px;letter-spacing:2px;cursor:${canBuy?'pointer':'not-allowed'}">
+              ${canBuy?'✓ ACQUÉRIR':'🔒 FONDS INSUFFISANTS'}
+            </button>`
+          : `<div style="margin-bottom:12px">
+              <button onclick="upgradeCompany('${co.id}')" style="width:100%;padding:8px;border-radius:9px;border:1px solid ${canUpg?'var(--gold-dim)':'var(--border)'};background:${canUpg?'linear-gradient(135deg,var(--gold-dim),#1a1005)':'var(--bg3)'};color:${canUpg?'var(--gold-light)':'var(--text-muted)'};font-size:11px;cursor:${canUpg?'pointer':'not-allowed'}">
+                🏢 Développer l'entreprise → Niv.${compLvl+1} — $${formatNum(upCost)}
+                <span style="opacity:.7"> (revenu de base: $${formatNum(co.baseIncome*(compLvl+1),1)}/s)</span>
+              </button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${deptHTML}</div>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function buyCompany(id) {
+  const co = COMPANIES.find(c=>c.id===id);
+  if (!co || GS.cash < co.price) { toast('Fonds insuffisants!','lose'); return; }
+  GS.cash -= co.price;
+  GS.companies[id] = { level:1, depts:{} };
+  toast(`${co.icon} ${co.name} acquise! +$${formatNum(co.baseIncome,1)}/s`, 'win');
+  spawnCoins(8);
+  gainXP(200);
+  updateTopbar();
+  renderCompanies();
+}
+
+function upgradeCompany(id) {
+  const co = COMPANIES.find(c=>c.id===id);
+  if (!co || !GS.companies[id]) return;
+  const cost = getCompanyUpgradeCost(id);
+  if (GS.cash < cost) { toast('Fonds insuffisants!','lose'); return; }
+  GS.cash -= cost;
+  GS.companies[id].level = (GS.companies[id].level||1) + 1;
+  const newInc = getCompanyIncome(id);
+  toast(`${co.icon} ${co.name} → Niv.${GS.companies[id].level}! $${formatNum(newInc,2)}/s`, 'win');
+  gainXP(100);
+  updateTopbar();
+  renderCompanies();
+}
+
+function upgradeDept(coId, deptId) {
+  const co = COMPANIES.find(c=>c.id===coId);
+  if (!co || !GS.companies[coId]) return;
+  const cost = getDeptUpgradeCost(coId, deptId);
+  if (GS.cash < cost) { toast('Fonds insuffisants!','lose'); return; }
+  GS.cash -= cost;
+  if (!GS.companies[coId].depts) GS.companies[coId].depts = {};
+  GS.companies[coId].depts[deptId] = (GS.companies[coId].depts[deptId]||0) + 1;
+  const dept = co.depts.find(d=>d.id===deptId);
+  const newLvl = GS.companies[coId].depts[deptId];
+  toast(`${dept.icon} ${dept.name} → Niv.${newLvl}!`, 'win');
+  gainXP(50);
+  updateTopbar();
+  renderCompanies();
 }
 
 // ════════════════════════════════════════════════
