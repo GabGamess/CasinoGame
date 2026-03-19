@@ -411,7 +411,7 @@ select.input option{background:var(--bg2)}
       </div>
       <div class="tb-stat">
         <span class="icon">📈</span>
-        <div><div class="label">Passif/h</div><div class="value green" id="tb-passive">$0</div></div>
+        <div><div class="label">Passif/s</div><div class="value green" id="tb-passive">$0</div></div>
       </div>
       <div class="tb-stat">
         <span class="icon">⭐</span>
@@ -448,9 +448,10 @@ select.input option{background:var(--bg2)}
       <div class="sb-section-title">Marchés</div>
       <div class="sb-item" onclick="showView('crypto')" id="nav-crypto"><span class="icon">📊</span><span class="name">Cryptomonnaies</span></div>
       <div class="sb-item" onclick="showView('stocks')" id="nav-stocks"><span class="icon">📉</span><span class="name">Bourse</span></div>
-      <div class="sb-item" onclick="showView('realestate')" id="nav-realestate"><span class="icon">🏢</span><span class="name">Immobilier</span></div>
+      <div class="sb-item" onclick="showView('realestate')" id="nav-realestate"><span class="icon">🏢</span><span class="name">Investissements</span></div>
       <div class="sb-item" onclick="showView('lifestyle')" id="nav-lifestyle"><span class="icon">💎</span><span class="name">Style de Vie</span></div>
       <div class="sb-item" onclick="showView('loans')" id="nav-loans"><span class="icon">🏦</span><span class="name">Emprunts</span></div>
+      <div class="sb-item" onclick="showView('underground')" id="nav-underground"><span class="icon">🕵️</span><span class="name">Marché Noir</span><span class="badge" style="background:#5a0010;color:#ff3d4f">ILLÉGAL</span></div>
     </div>
     <div class="sb-section">
       <div class="sb-section-title">Joueur</div>
@@ -573,13 +574,15 @@ select.input option{background:var(--bg2)}
 
     <!-- REAL ESTATE -->
     <div class="view" id="view-realestate">
-      <div class="card-title" style="font-family:var(--font-display);font-size:22px;letter-spacing:3px;color:var(--gold-light);margin-bottom:16px">🏢 IMMOBILIER</div>
+      <div class="card-title" style="font-family:var(--font-display);font-size:22px;letter-spacing:3px;color:var(--gold-light);margin-bottom:16px">🏢 INVESTISSEMENTS</div>
       <div class="card mb" style="background:linear-gradient(135deg,var(--surface),#0a1a0a);border-color:#1a3a1a">
         <div class="flex-between">
-          <div><div class="label">Revenus passifs totaux/h</div><div style="font-family:var(--font-display);font-size:24px;color:var(--green)" id="total-passive">$0</div></div>
+          <div><div class="label">Revenus passifs /seconde</div><div style="font-family:var(--font-display);font-size:24px;color:var(--green)" id="total-passive">$0</div></div>
+          <div style="text-align:center"><div class="label">Revenus /heure</div><div style="font-family:var(--font-display);font-size:20px;color:var(--green)" id="total-passive-hour">$0</div></div>
           <div style="text-align:right"><div class="label">Valeur portfolio</div><div style="font-family:var(--font-display);font-size:24px;color:var(--gold-light)" id="total-restate">$0</div></div>
         </div>
       </div>
+      <div id="invest-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"></div>
       <div class="property-grid" id="property-grid"></div>
     </div>
 
@@ -657,6 +660,17 @@ select.input option{background:var(--bg2)}
       </div>
     </div>
 
+    <!-- UNDERGROUND -->
+    <div class="view" id="view-underground">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <div style="font-family:var(--font-display);font-size:22px;letter-spacing:3px;color:#ff3d4f">🕵️ MARCHÉ NOIR</div>
+        <div style="font-size:10px;background:rgba(255,61,79,0.12);border:1px solid rgba(255,61,79,0.3);color:#ff6b7a;padding:3px 10px;border-radius:20px">ACTIVITÉS ILLÉGALES — JEU FICTIF</div>
+      </div>
+      <div id="underground-stats" class="card mb" style="background:linear-gradient(135deg,#0d0205,#180508);border-color:#3a0010"></div>
+      <div id="underground-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"></div>
+      <div id="underground-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px"></div>
+    </div>
+
   </div><!-- /main -->
 
   <!-- RIGHTBAR -->
@@ -723,8 +737,12 @@ const GS = {
     'FinBank': { held: 0, price: 440, history: [], div: 0.015 }
   },
   properties: {},
+  propertyLevels: {},  // { id: level } default 1
   loans: [],           // { id, amount, remaining, rate, monthlyPayment, taken }
   lifestyle: {},       // { car1: true, ... }
+  underground: {},     // { op_id: true }
+  undergroundLevels:{},// { op_id: level }
+  heatLevel: 0,        // 0-100 police attention
   jackpot: 50000,
   casinoStats: { totalPlayed: 0, totalWon: 0, totalLost: 0, biggestWin: 0, spinsTotal: 0 },
   sportsHistory: [],
@@ -743,14 +761,59 @@ const GS = {
 //  CONSTANTS
 // ════════════════════════════════════════════════
 const PROPERTIES = [
-  { id:'apt1', name:'Studio Paris', icon:'🏠', price:80000, income:400, type:'apt', desc:'Petit appartement, revenu stable' },
-  { id:'apt2', name:'Appartement Luxe', icon:'🏙️', price:350000, income:1800, type:'apt', desc:'Centre-ville, haut rendement' },
-  { id:'hotel1', name:'Hôtel 3★', icon:'🏨', price:1200000, income:8000, type:'hotel', desc:'Hôtel de ville, clientèle régulière' },
-  { id:'hotel2', name:'Palace 5★', icon:'🏰', price:8000000, income:60000, type:'hotel', desc:'Luxe absolu, revenus royaux' },
-  { id:'casino1', name:'Casino Local', icon:'🎰', price:5000000, income:40000, type:'casino', desc:'Casino de quartier, bonne fréquentation' },
-  { id:'casino2', name:'Méga Casino', icon:'🏯', price:50000000, income:500000, type:'casino', desc:'Empire du jeu, jackpots monstre' },
-  { id:'crypto_farm', name:'Ferme Mining', icon:'⛏️', price:200000, income:2500, type:'tech', desc:'Mine des cryptos automatiquement' },
-  { id:'penthouse', name:'Penthouse NYC', icon:'🌆', price:3000000, income:15000, type:'apt', desc:'Vue panoramique, standing ultime' }
+  // Résidentiel
+  { id:'studio',    name:'Studio Paris',       icon:'🏠',  price:15000,     incomePerSec:0.5,   type:'apt',    desc:'Loyer modeste, bon début',        upgradeMult:1.8 },
+  { id:'apt1',      name:'Appartement T3',     icon:'🏡',  price:60000,     incomePerSec:2,     type:'apt',    desc:'4 pièces, quartier prisé',        upgradeMult:1.8 },
+  { id:'apt2',      name:'Appartement Luxe',   icon:'🏙️',  price:250000,    incomePerSec:8,     type:'apt',    desc:'Centre-ville, haut rendement',    upgradeMult:1.7 },
+  { id:'penthouse', name:'Penthouse NYC',       icon:'🌆',  price:2000000,   incomePerSec:50,    type:'apt',    desc:'Vue panoramique, standing ultime', upgradeMult:1.6 },
+  // Hôtellerie
+  { id:'bnb',       name:'Chambre Airbnb',     icon:'🛏️',  price:25000,     incomePerSec:1.5,   type:'hotel',  desc:'Location courte durée',           upgradeMult:1.8 },
+  { id:'hotel1',    name:'Hôtel 3★',           icon:'🏨',  price:800000,    incomePerSec:25,    type:'hotel',  desc:'Hôtel de ville, clientèle régulière', upgradeMult:1.7 },
+  { id:'hotel2',    name:'Palace 5★',          icon:'🏰',  price:6000000,   incomePerSec:200,   type:'hotel',  desc:'Luxe absolu, revenus royaux',      upgradeMult:1.6 },
+  // Casinos
+  { id:'casino1',   name:'Salle de Jeux',      icon:'🎲',  price:500000,    incomePerSec:30,    type:'casino', desc:'Petite salle locale',             upgradeMult:1.9 },
+  { id:'casino2',   name:'Casino Local',       icon:'🎰',  price:4000000,   incomePerSec:150,   type:'casino', desc:'Casino de quartier animé',        upgradeMult:1.8 },
+  { id:'casino3',   name:'Méga Casino',        icon:'🏯',  price:40000000,  incomePerSec:2000,  type:'casino', desc:'Empire du jeu, jackpots monstre', upgradeMult:1.7 },
+  // Tech & Entreprises
+  { id:'startup',   name:'Startup Tech',       icon:'💻',  price:100000,    incomePerSec:10,    type:'tech',   desc:'App mobile, croissance rapide',   upgradeMult:2.0 },
+  { id:'saas',      name:'SaaS Company',       icon:'☁️',  price:500000,    incomePerSec:40,    type:'tech',   desc:'Revenus récurrents mensuels',     upgradeMult:1.9 },
+  { id:'crypto_farm',name:'Ferme Mining',      icon:'⛏️',  price:150000,    incomePerSec:15,    type:'tech',   desc:'Mine des cryptos 24/7',           upgradeMult:1.8 },
+  { id:'datacenter',name:'Data Center',        icon:'🖥️',  price:5000000,   incomePerSec:300,   type:'tech',   desc:'Hébergement cloud mondial',       upgradeMult:1.7 },
+  // Énergie
+  { id:'solar',     name:'Parc Solaire',       icon:'☀️',  price:300000,    incomePerSec:20,    type:'energy', desc:'Énergie renouvelable',            upgradeMult:1.7 },
+  { id:'windpark',  name:'Parc Éolien',        icon:'🌬️',  price:1500000,   incomePerSec:80,    type:'energy', desc:'15 turbines offshore',            upgradeMult:1.7 },
+  { id:'nuclear',   name:'Centrale Nucléaire', icon:'⚛️',  price:20000000,  incomePerSec:1000,  type:'energy', desc:'Puissance illimitée',             upgradeMult:1.6 },
+  // Prestige
+  { id:'bank',      name:'Banque Privée',      icon:'🏦',  price:100000000, incomePerSec:8000,  type:'finance',desc:'Intérêts sur tous les prêts',     upgradeMult:1.5 },
+  { id:'exchange',  name:'Bourse Virtuelle',   icon:'📈',  price:500000000, incomePerSec:50000, type:'finance',desc:'Commission sur chaque transaction', upgradeMult:1.5 },
+];
+
+const UNDERGROUND_OPS = [
+  // Blanchiment
+  { id:'laundromat',  name:'Laverie Automatique', icon:'🧺', price:5000,      incomePerSec:0.8,  risk:0.05, cat:'blanchiment', desc:'Façade parfaite pour blanchir du cash',      upgradeMult:2.0 },
+  { id:'restaurant',  name:'Restaurant Fantôme',  icon:'🍕', price:20000,     incomePerSec:3,    risk:0.06, cat:'blanchiment', desc:'Factures fictives, revenus réels',           upgradeMult:1.9 },
+  { id:'offshore',    name:'Compte Offshore',     icon:'🏝️', price:200000,    incomePerSec:20,   risk:0.04, cat:'blanchiment', desc:'Îles Caïmans, zéro traçabilité',            upgradeMult:1.8 },
+  { id:'shell_co',    name:'Sociétés Écrans',     icon:'🏢', price:1000000,   incomePerSec:100,  risk:0.03, cat:'blanchiment', desc:'100 sociétés, 100 pays, 0 impôts',          upgradeMult:1.7 },
+  // Trafic fictif
+  { id:'smuggling',   name:'Contrebande',         icon:'📦', price:15000,     incomePerSec:4,    risk:0.12, cat:'trafic',      desc:'Cigarettes, montres, caviar',               upgradeMult:2.1 },
+  { id:'blackmarket', name:'Marché Noir Local',   icon:'🕶️', price:80000,     incomePerSec:18,   risk:0.10, cat:'trafic',      desc:'Revente de marchandises volées',            upgradeMult:2.0 },
+  { id:'darkweb',     name:'Boutique DarkWeb',    icon:'💻', price:500000,    incomePerSec:80,   risk:0.15, cat:'trafic',      desc:'Données, faux papiers, accès VIP',         upgradeMult:1.9 },
+  { id:'arms_deal',   name:'Courtier en Armes',  icon:'🔫', price:5000000,   incomePerSec:500,  risk:0.20, cat:'trafic',      desc:'Contrats militaires douteux',              upgradeMult:1.8 },
+  // Crime organisé
+  { id:'gang',        name:'Gang de Rue',         icon:'😤', price:10000,     incomePerSec:2,    risk:0.15, cat:'crime',       desc:'Racket de quartier',                       upgradeMult:2.2 },
+  { id:'mafia_cell',  name:'Cellule Mafieuse',   icon:'🤵', price:100000,    incomePerSec:30,   risk:0.12, cat:'crime',       desc:'Extorsion, protection, jeu clandestin',    upgradeMult:2.0 },
+  { id:'cartel',      name:'Cartel International',icon:'💀', price:10000000,  incomePerSec:2000, risk:0.25, cat:'crime',       desc:'Réseau mondial, profits colossaux',        upgradeMult:1.9 },
+  // Paradis fiscaux & fraude
+  { id:'taxfraud',    name:'Fraude Fiscale',      icon:'📑', price:50000,     incomePerSec:12,   risk:0.08, cat:'fraude',      desc:'Fausses déclarations, remboursements',     upgradeMult:1.9 },
+  { id:'ponzi',       name:'Schéma de Ponzi',     icon:'📊', price:300000,    incomePerSec:60,   risk:0.18, cat:'fraude',      desc:'100 investisseurs, 1 seul gagnant',        upgradeMult:2.1 },
+  { id:'insider',     name:'Délit d\'Initié',     icon:'📈', price:150000,    incomePerSec:40,   risk:0.10, cat:'fraude',      desc:'Infos confidentielles = profits garantis', upgradeMult:1.8 },
+  // Casino clandestin
+  { id:'clandestino', name:'Casino Clandestin',   icon:'🎲', price:75000,     incomePerSec:25,   risk:0.13, cat:'casino noir', desc:'Arrière-salle, clientèle VIP discrète',    upgradeMult:2.0 },
+  { id:'rigged',      name:'Tables Truquées',     icon:'🃏', price:400000,    incomePerSec:120,  risk:0.16, cat:'casino noir', desc:'La maison gagne toujours… vraiment',       upgradeMult:1.9 },
+  { id:'crypto_scam', name:'Crypto Arnaque',      icon:'🪙', price:2000000,   incomePerSec:400,  risk:0.20, cat:'casino noir', desc:'ICO bidon, rugpull garanti',               upgradeMult:1.9 },
+  // Ultra prestige crime
+  { id:'spy_network', name:'Réseau d\'Espions',  icon:'🕵️', price:50000000,  incomePerSec:5000, risk:0.08, cat:'prestige',    desc:'Renseignements vendus aux plus offrants',  upgradeMult:1.7 },
+  { id:'shadow_bank', name:'Banque de l\'Ombre', icon:'🌑', price:500000000, incomePerSec:50000,risk:0.05, cat:'prestige',    desc:'Finance l\'économie souterraine mondiale', upgradeMult:1.6 },
 ];
 
 const LIFESTYLE_ITEMS = [
@@ -904,6 +967,10 @@ function loadGame() {
     if (!GS.economy) GS.economy = { inflation:1.0, trend:'stable', eventActive:null };
     if (!GS.loans) GS.loans = [];
     if (!GS.lifestyle) GS.lifestyle = {};
+    if (!GS.propertyLevels) GS.propertyLevels = {};
+    if (!GS.underground) GS.underground = {};
+    if (!GS.undergroundLevels) GS.undergroundLevels = {};
+    if (GS.heatLevel === undefined) GS.heatLevel = 0;
   } catch(e) { initDefaultHistory(); }
 }
 
@@ -934,7 +1001,7 @@ function generateHistory(base, n, volatility) {
 // ════════════════════════════════════════════════
 function startTicks() {
   setInterval(tickMarkets, 3000);
-  setInterval(tickPassive, 5000);
+  setInterval(tickPassive, 1000);  // every second
   setInterval(tickEvents, 30000);
   setInterval(tickJackpot, 1000);
   setInterval(tickClock, 1000);
@@ -971,51 +1038,76 @@ function tickMarkets() {
   refreshMarkets();
 }
 
+function getPropIncome(id) {
+  const prop = PROPERTIES.find(p => p.id === id);
+  if (!prop) return 0;
+  const lvl = GS.propertyLevels[id] || 1;
+  return prop.incomePerSec * Math.pow(prop.upgradeMult || 1.7, lvl - 1);
+}
+
+function getUpgradeCost(id) {
+  const prop = PROPERTIES.find(p => p.id === id);
+  if (!prop) return 0;
+  const lvl = GS.propertyLevels[id] || 1;
+  return Math.floor(prop.price * 0.5 * Math.pow(1.8, lvl - 1));
+}
+
 function tickPassive() {
   let passive = 0;
-  // Property income (per hour, tick every 5s = /720)
+  // Property income per second
   for (const [id, owned] of Object.entries(GS.properties)) {
-    const prop = PROPERTIES.find(p => p.id === id);
-    if (prop && owned) {
-      passive += prop.income / 720;
-    }
+    if (owned) passive += getPropIncome(id);
   }
-  // Stock dividends
+  // Stock dividends per second (annual div / 365 / 24 / 3600)
   for (const [key, stock] of Object.entries(GS.stocks)) {
-    if (stock.held > 0) passive += stock.held * stock.price * stock.div / (365 * 24 * 12);
+    if (stock.held > 0) passive += stock.held * stock.price * stock.div / (365 * 24 * 3600);
   }
   if (passive > 0) {
     GS.cash += passive;
     updateTopbar();
   }
-  // Loan repayments — debit every 5s proportional to monthly payment (1 month = ~30 days = 720 ticks/h * 24 * 30)
+  // Underground income per second (with heat risk)
+  if (GS.underground) {
+    for (const [id] of Object.entries(GS.underground)) {
+      const income = getUgIncome(id);
+      const op = UNDERGROUND_OPS.find(o => o.id === id);
+      if (income > 0) {
+        // Heat penalty: at 100% heat, lose 50% income
+        const heatPenalty = 1 - (GS.heatLevel || 0) * 0.005;
+        GS.cash += income * Math.max(0.5, heatPenalty);
+        // Slowly build heat
+        if (op && Math.random() < 0.002) GS.heatLevel = Math.min(100, (GS.heatLevel||0) + op.risk);
+      }
+    }
+  }
+  // Loan repayments (monthly / 30 / 24 / 3600)
   if (GS.loans && GS.loans.length > 0) {
-    const ticksPerMonth = 720 * 24 * 30;
-    let totalDebit = 0;
     GS.loans = GS.loans.filter(loan => {
       if (loan.remaining <= 0) return false;
-      const debit = loan.monthlyPayment / ticksPerMonth;
+      const debit = loan.monthlyPayment / (30 * 24 * 3600);
       const actual = Math.min(debit, loan.remaining);
       GS.cash -= actual;
-      loan.remaining -= actual;
-      totalDebit += actual;
+      loan.remaining = Math.max(0, loan.remaining - actual);
       return loan.remaining > 0.01;
     });
-    if (totalDebit > 0) updateTopbar();
   }
-  document.getElementById('tb-passive').textContent = '$' + formatNum(getHourlyPassive());
+  document.getElementById('tb-passive').textContent = '$' + formatNum(getPassivePerSec(), 2) + '/s';
+}
+
+function getPassivePerSec() {
+  let passive = 0;
+  for (const [id, owned] of Object.entries(GS.properties)) {
+    if (owned) passive += getPropIncome(id);
+  }
+  for (const [key, stock] of Object.entries(GS.stocks)) {
+    if (stock.held > 0) passive += stock.held * stock.price * stock.div / (365 * 24 * 3600);
+  }
+  passive += getUndergroundPerSec();
+  return passive;
 }
 
 function getHourlyPassive() {
-  let passive = 0;
-  for (const [id, owned] of Object.entries(GS.properties)) {
-    const prop = PROPERTIES.find(p => p.id === id);
-    if (prop && owned) passive += prop.income;
-  }
-  for (const [key, stock] of Object.entries(GS.stocks)) {
-    if (stock.held > 0) passive += stock.held * stock.price * stock.div / (365 * 24);
-  }
-  return passive;
+  return getPassivePerSec() * 3600;
 }
 
 function tickJackpot() {
@@ -1063,14 +1155,14 @@ function updateWealthHistory() {
 function autoSave() { saveGame(); }
 
 function offlineEarnings() {
-  const elapsed = (Date.now() - GS.lastSave) / 3600000; // hours
-  if (elapsed > 0.5) {
-    const hourly = getHourlyPassive();
-    const earned = hourly * Math.min(elapsed, 24); // cap at 24h
+  const elapsed = (Date.now() - GS.lastSave) / 1000; // seconds
+  if (elapsed > 60) {
+    const perSec = getPassivePerSec();
+    const earned = perSec * Math.min(elapsed, 86400); // cap at 24h
     if (earned > 0) {
       GS.cash += earned;
       GS.offlineEarnings = earned;
-      toast(`💤 Revenus hors ligne: +$${formatNum(earned)} (${elapsed.toFixed(1)}h)`, 'info');
+      toast(`💤 Revenus hors ligne: +$${formatNum(earned)} (${(elapsed/3600).toFixed(1)}h)`, 'info');
     }
   }
 }
@@ -1091,6 +1183,8 @@ function showView(id) {
   if (id === 'profile') renderProfile();
   if (id === 'lifestyle') renderLifestyle();
   if (id === 'loans') renderLoans();
+  if (id === 'underground') renderUnderground();
+  if (id === 'underground') renderUnderground();
 }
 
 // ════════════════════════════════════════════════
@@ -1195,7 +1289,7 @@ function renderDashboard() {
     <div class="stat-card tokens">
       <div class="sc-icon">🏢</div><div class="sc-label">Immobilier</div>
       <div class="sc-value">$${formatNum(propVal)}</div>
-      <div class="sc-change up">+$${formatNum(getHourlyPassive())}/h passif</div>
+      <div class="sc-change up">+$${formatNum(getPassivePerSec(),2)}/s passif</div>
     </div>
     <div class="stat-card level">
       <div class="sc-icon">⭐</div><div class="sc-label">Niveau & XP</div>
@@ -3239,32 +3333,71 @@ function tradeAsset(type, key, action) {
 function renderRealEstate() {
   const grid = document.getElementById('property-grid');
   if (!grid) return;
-  grid.innerHTML = PROPERTIES.map(p => {
-    const owned = GS.properties[p.id];
-    return `
-    <div class="property-card" style="position:relative" onclick="buyProperty('${p.id}')">
-      ${owned ? '<div class="property-owned">✓ POSSÉDÉ</div>' : ''}
-      <div class="property-img" style="background:linear-gradient(135deg,var(--surface),var(--bg3))">${p.icon}</div>
-      <div class="property-info">
-        <div class="property-name">${p.name}</div>
-        <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px">${p.desc}</div>
-        <div class="property-price">$${formatNum(p.price)}</div>
-        <div class="property-income">+$${formatNum(p.income)}/h passif</div>
-        ${owned ? '' : `<div style="font-size:9px;color:var(--text-dim);margin-top:4px">${GS.cash >= p.price ? '✓ Achetable' : '🔒 Fonds insuffisants'}</div>`}
-      </div>
-    </div>`;
-  }).join('');
 
-  const totalPassive = getHourlyPassive();
+  const perSec = getPassivePerSec();
+  const tp = document.getElementById('total-passive');
+  const tph = document.getElementById('total-passive-hour');
+  const tr = document.getElementById('total-restate');
+  if (tp) tp.textContent = '$' + formatNum(perSec, 2) + '/s';
+  if (tph) tph.textContent = '$' + formatNum(perSec * 3600, 0) + '/h';
   const totalPropVal = Object.entries(GS.properties).reduce((s,[id,o]) => {
     if (!o) return s;
     const p = PROPERTIES.find(pr=>pr.id===id);
-    return s + (p?p.price:0);
+    return s + (p ? p.price : 0);
   }, 0);
-  const tp = document.getElementById('total-passive');
-  const tr = document.getElementById('total-restate');
-  if (tp) tp.textContent = '$' + formatNum(totalPassive, 2);
   if (tr) tr.textContent = '$' + formatNum(totalPropVal);
+
+  // Filter bar
+  const filterBar = document.getElementById('invest-filter-bar');
+  const cats = [...new Set(PROPERTIES.map(p=>p.type))];
+  const activeCat = window._investCat || 'tous';
+  const catLabels = {apt:'🏠 Résidentiel',hotel:'🏨 Hôtellerie',casino:'🎰 Casinos',tech:'💻 Tech',energy:'⚡ Énergie',finance:'🏦 Finance'};
+  if (filterBar) filterBar.innerHTML = `
+    <button onclick="window._investCat='tous';renderRealEstate()" style="padding:4px 12px;border-radius:20px;border:1px solid ${activeCat==='tous'?'var(--gold)':'var(--border)'};background:${activeCat==='tous'?'var(--gold-dim)':'var(--bg3)'};color:${activeCat==='tous'?'var(--gold-light)':'var(--text-dim)'};cursor:pointer;font-size:10px">Tous</button>
+    ${cats.map(c=>`<button onclick="window._investCat='${c}';renderRealEstate()" style="padding:4px 12px;border-radius:20px;border:1px solid ${activeCat===c?'var(--green)':'var(--border)'};background:${activeCat===c?'rgba(0,230,118,0.1)':'var(--bg3)'};color:${activeCat===c?'var(--green)':'var(--text-dim)'};cursor:pointer;font-size:10px">${catLabels[c]||c}</button>`).join('')}`;
+
+  const filtered = activeCat === 'tous' ? PROPERTIES : PROPERTIES.filter(p=>p.type===activeCat);
+
+  grid.innerHTML = filtered.map(p => {
+    const owned = GS.properties[p.id];
+    const lvl = GS.propertyLevels[p.id] || 1;
+    const income = getPropIncome(p.id);
+    const upgCost = getUpgradeCost(p.id);
+    const canBuy = GS.cash >= p.price;
+    const canUpgrade = owned && GS.cash >= upgCost;
+
+    return `
+    <div style="background:${owned?'linear-gradient(135deg,#061a06,#0a1f0a)':'linear-gradient(135deg,var(--surface),var(--bg3))'};border:2px solid ${owned?'var(--green-dim)':'var(--border)'};border-radius:14px;overflow:hidden;transition:all .3s">
+      <div style="padding:14px 14px 0">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:${owned?'var(--green)':'var(--text-dim)'}">${catLabels[p.type]||p.type}</div>
+          ${owned ? `<div style="background:var(--green-dim);border:1px solid var(--green);color:var(--green);font-size:9px;padding:1px 7px;border-radius:10px">NV.${lvl}</div>` : ''}
+        </div>
+        <div style="font-size:30px;margin-bottom:6px">${p.icon}</div>
+        <div style="font-family:var(--font-display);font-size:15px;letter-spacing:1px;color:var(--text);margin-bottom:3px">${p.name}</div>
+        <div style="font-size:9px;color:var(--text-dim);margin-bottom:8px">${p.desc}</div>
+        <div style="font-family:var(--font-display);font-size:17px;color:var(--gold-light);margin-bottom:4px">$${formatNum(p.price)}</div>
+        <div style="font-size:11px;color:var(--green);margin-bottom:10px">
+          +$${formatNum(owned ? income : p.incomePerSec, 2)}/s
+          <span style="color:var(--text-dim);font-size:9px"> (${formatNum((owned?income:p.incomePerSec)*3600,0)}/h)</span>
+        </div>
+      </div>
+      <div style="padding:0 14px 14px;display:flex;gap:6px">
+        ${!owned
+          ? `<button onclick="buyProperty('${p.id}')" style="flex:1;padding:8px;border-radius:8px;border:1px solid ${canBuy?'var(--gold-dim)':'var(--border)'};background:${canBuy?'linear-gradient(135deg,var(--gold-dim),#1a1005)':'var(--bg3)'};color:${canBuy?'var(--gold-light)':'var(--text-muted)'};font-size:11px;cursor:${canBuy?'pointer':'not-allowed'}">${canBuy?'✓ Acheter':'🔒 Fonds insuffisants'}</button>`
+          : `<div style="flex:1">
+              <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px">Revenu actuel: <span style="color:var(--green)">$${formatNum(income,2)}/s</span></div>
+              ${lvl < 20
+                ? `<button onclick="upgradeProperty('${p.id}')" style="width:100%;padding:7px;border-radius:8px;border:1px solid ${canUpgrade?'var(--blue)':'var(--border)'};background:${canUpgrade?'rgba(79,195,247,0.1)':'var(--bg3)'};color:${canUpgrade?'var(--blue)':'var(--text-muted)'};font-size:10px;cursor:${canUpgrade?'pointer':'not-allowed'}">
+                  ⬆ Améliorer niv.${lvl+1} — $${formatNum(upgCost)}<br>
+                  <span style="font-size:9px;opacity:.7">→ $${formatNum(income * (p.upgradeMult||1.7), 2)}/s après</span>
+                </button>`
+                : `<div style="text-align:center;font-size:10px;color:var(--gold);padding:6px">🏆 Niveau MAX atteint</div>`}
+             </div>`
+        }
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function buyProperty(id) {
@@ -3272,15 +3405,176 @@ function buyProperty(id) {
   const prop = PROPERTIES.find(p => p.id === id);
   if (!prop) return;
   if (GS.cash < prop.price) { toast(`Fonds insuffisants! Besoin: $${formatNum(prop.price)}`,'lose'); return; }
-  if (!confirm(`Acheter ${prop.name} pour $${formatNum(prop.price)}?\nRevenu: +$${formatNum(prop.income)}/h`)) return;
   GS.cash -= prop.price;
   GS.properties[id] = true;
-  toast(`🏠 ${prop.name} acheté! +$${formatNum(prop.income)}/h`, 'win');
+  GS.propertyLevels[id] = 1;
+  toast(`${prop.icon} ${prop.name} acheté! +$${formatNum(prop.incomePerSec,2)}/s`, 'win');
+  spawnCoins(4);
   gainXP(100);
   checkAchievement('landlord', true);
   checkQuestProgress();
   updateTopbar();
   renderRealEstate();
+}
+
+function upgradeProperty(id) {
+  const prop = PROPERTIES.find(p => p.id === id);
+  if (!prop || !GS.properties[id]) return;
+  const cost = getUpgradeCost(id);
+  if (GS.cash < cost) { toast('Fonds insuffisants pour l\'amélioration!','lose'); return; }
+  GS.cash -= cost;
+  GS.propertyLevels[id] = (GS.propertyLevels[id] || 1) + 1;
+  const newIncome = getPropIncome(id);
+  toast(`${prop.icon} ${prop.name} → Niv.${GS.propertyLevels[id]}! +$${formatNum(newIncome,2)}/s`, 'win');
+  updateTopbar();
+  renderRealEstate();
+}
+
+// ════════════════════════════════════════════════
+//  UNDERGROUND — MARCHÉ NOIR
+// ════════════════════════════════════════════════
+function renderUnderground() {
+  const grid = document.getElementById('underground-grid');
+  const stats = document.getElementById('underground-stats');
+  const filterBar = document.getElementById('underground-filter-bar');
+  if (!grid) return;
+
+  // Stats panel
+  if (stats) {
+    const totalIncome = getUndergroundPerSec();
+    const heat = GS.heatLevel || 0;
+    const heatColor = heat > 70 ? 'var(--red)' : heat > 40 ? 'var(--orange)' : 'var(--green)';
+    stats.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+        <div><div class="label">Revenus illégaux/s</div><div style="font-family:var(--font-display);font-size:20px;color:var(--red)">$${formatNum(totalIncome,2)}/s</div></div>
+        <div><div class="label">Niveau de chaleur 🌡️</div>
+          <div style="margin-top:4px;height:8px;background:var(--border);border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:${heat}%;background:${heatColor};transition:width .5s"></div>
+          </div>
+          <div style="font-size:10px;color:${heatColor};margin-top:2px">${heat.toFixed(0)}% — ${heat>70?'🚨 CHAUD!':heat>40?'⚠️ Risqué':'✓ Calme'}</div>
+        </div>
+        <div>
+          <div class="label">Avertissement</div>
+          <div style="font-size:10px;color:var(--text-dim);margin-top:4px">Plus la chaleur monte, plus vous risquez de perdre des revenus. Restez discret.</div>
+          ${heat > 20 ? `<button onclick="reduceheat()" style="margin-top:6px;padding:4px 10px;border-radius:6px;border:1px solid var(--blue-dim);background:var(--blue-dim);color:var(--blue);font-size:10px;cursor:pointer">🧊 Réduire la chaleur (-$${formatNum(heat*500)})</button>` : ''}
+        </div>
+      </div>`;
+  }
+
+  // Filter bar
+  const cats = [...new Set(UNDERGROUND_OPS.map(o=>o.cat))];
+  const activeCat = window._ugCat || 'tous';
+  const catColors = { blanchiment:'#4fc3f7', trafic:'#ff9800', crime:'#ff3d4f', fraude:'#bb86fc', 'casino noir':'#c9a84c', prestige:'#ff6b6b' };
+  if (filterBar) filterBar.innerHTML = `
+    <button onclick="window._ugCat='tous';renderUnderground()" style="padding:4px 12px;border-radius:20px;border:1px solid ${activeCat==='tous'?'var(--red)':'var(--border)'};background:${activeCat==='tous'?'var(--red-dim)':'var(--bg3)'};color:${activeCat==='tous'?'var(--red)':'var(--text-dim)'};cursor:pointer;font-size:10px">Tout</button>
+    ${cats.map(c=>`<button onclick="window._ugCat='${c}';renderUnderground()" style="padding:4px 12px;border-radius:20px;border:1px solid ${activeCat===c?(catColors[c]||'#888'):'var(--border)'};background:${activeCat===c?'rgba(255,61,79,0.1)':'var(--bg3)'};color:${activeCat===c?(catColors[c]||'#888'):'var(--text-dim)'};cursor:pointer;font-size:10px">${c}</button>`).join('')}`;
+
+  const filtered = activeCat === 'tous' ? UNDERGROUND_OPS : UNDERGROUND_OPS.filter(o=>o.cat===activeCat);
+
+  grid.innerHTML = filtered.map(op => {
+    const owned = GS.underground[op.id];
+    const lvl = GS.undergroundLevels[op.id] || 1;
+    const income = getUgIncome(op.id);
+    const upgCost = getUgUpgradeCost(op.id);
+    const canBuy = GS.cash >= op.price;
+    const canUpg = owned && GS.cash >= upgCost;
+    const catColor = catColors[op.cat] || '#888';
+    const riskPct = Math.round(op.risk * 100);
+
+    return `
+    <div style="background:${owned?'linear-gradient(135deg,#1a0205,#240508)':'linear-gradient(135deg,var(--surface),var(--bg3))'};border:2px solid ${owned?catColor+'66':'var(--border)'};border-radius:14px;overflow:hidden;transition:all .3s">
+      <div style="height:2px;background:${owned?catColor:'transparent'}"></div>
+      <div style="padding:12px 12px 0">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:${catColor}">${op.cat}</div>
+          ${owned ? `<div style="background:rgba(255,61,79,0.2);border:1px solid var(--red-dim);color:var(--red);font-size:9px;padding:1px 7px;border-radius:10px">NV.${lvl}</div>` : ''}
+        </div>
+        <div style="font-size:28px;margin-bottom:5px">${op.icon}</div>
+        <div style="font-family:var(--font-display);font-size:14px;letter-spacing:1px;color:var(--text);margin-bottom:2px">${op.name}</div>
+        <div style="font-size:9px;color:var(--text-dim);margin-bottom:6px">${op.desc}</div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <div style="font-family:var(--font-display);font-size:15px;color:var(--gold-light)">$${formatNum(op.price)}</div>
+          <div style="font-size:10px;color:${riskPct>15?'var(--red)':'var(--orange)'}">⚠️ Risque ${riskPct}%</div>
+        </div>
+        <div style="font-size:11px;color:var(--red);margin-bottom:8px">+$${formatNum(owned?income:op.incomePerSec,2)}/s</div>
+      </div>
+      <div style="padding:0 12px 12px;display:flex;gap:5px">
+        ${!owned
+          ? `<button onclick="buyUnderground('${op.id}')" style="flex:1;padding:7px;border-radius:8px;border:1px solid ${canBuy?catColor:'var(--border)'};background:${canBuy?`rgba(255,61,79,0.15)`:'var(--bg3)'};color:${canBuy?catColor:'var(--text-muted)'};font-size:10px;cursor:${canBuy?'pointer':'not-allowed'}">${canBuy?'💀 Activer':'🔒 Fonds insuffisants'}</button>`
+          : `<div style="flex:1">
+              <div style="font-size:10px;color:var(--red);margin-bottom:4px">$${formatNum(income,2)}/s actuel</div>
+              ${lvl < 15
+                ? `<button onclick="upgradeUnderground('${op.id}')" style="width:100%;padding:6px;border-radius:7px;border:1px solid ${canUpg?catColor:'var(--border)'};background:${canUpg?`rgba(255,61,79,0.1)`:'var(--bg3)'};color:${canUpg?catColor:'var(--text-muted)'};font-size:9px;cursor:${canUpg?'pointer':'not-allowed'}">
+                    ⬆ Niv.${lvl+1} — $${formatNum(upgCost)}<br>
+                    <span style="opacity:.7">→ $${formatNum(income*(op.upgradeMult||2.0),2)}/s</span>
+                  </button>`
+                : `<div style="text-align:center;font-size:10px;color:var(--red);padding:5px">☠️ Niveau MAX</div>`}
+             </div>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function getUgIncome(id) {
+  const op = UNDERGROUND_OPS.find(o => o.id === id);
+  if (!op || !GS.underground[id]) return 0;
+  const lvl = GS.undergroundLevels[id] || 1;
+  return op.incomePerSec * Math.pow(op.upgradeMult || 2.0, lvl - 1);
+}
+
+function getUgUpgradeCost(id) {
+  const op = UNDERGROUND_OPS.find(o => o.id === id);
+  if (!op) return 0;
+  const lvl = GS.undergroundLevels[id] || 1;
+  return Math.floor(op.price * Math.pow(1.8, lvl));
+}
+
+function getUndergroundPerSec() {
+  let total = 0;
+  if (!GS.underground) return 0;
+  for (const [id] of Object.entries(GS.underground)) {
+    total += getUgIncome(id);
+  }
+  return total;
+}
+
+function buyUnderground(id) {
+  const op = UNDERGROUND_OPS.find(o => o.id === id);
+  if (!op) return;
+  if (GS.cash < op.price) { toast('Fonds insuffisants!','lose'); return; }
+  GS.cash -= op.price;
+  GS.underground[id] = true;
+  GS.undergroundLevels[id] = 1;
+  GS.heatLevel = Math.min(100, (GS.heatLevel||0) + op.risk * 10);
+  toast(`${op.icon} ${op.name} activé! +$${formatNum(op.incomePerSec,2)}/s`, 'win');
+  gainXP(50);
+  updateTopbar();
+  renderUnderground();
+}
+
+function upgradeUnderground(id) {
+  const op = UNDERGROUND_OPS.find(o => o.id === id);
+  if (!op || !GS.underground[id]) return;
+  const cost = getUgUpgradeCost(id);
+  if (GS.cash < cost) { toast('Fonds insuffisants!','lose'); return; }
+  GS.cash -= cost;
+  GS.undergroundLevels[id] = (GS.undergroundLevels[id]||1) + 1;
+  GS.heatLevel = Math.min(100, (GS.heatLevel||0) + op.risk * 3);
+  const newIncome = getUgIncome(id);
+  toast(`${op.icon} ${op.name} → Niv.${GS.undergroundLevels[id]}! +$${formatNum(newIncome,2)}/s`, 'win');
+  updateTopbar();
+  renderUnderground();
+}
+
+function reduceheat() {
+  const cost = (GS.heatLevel||0) * 500;
+  if (GS.cash < cost) { toast('Fonds insuffisants pour soudoyer la police!','lose'); return; }
+  GS.cash -= cost;
+  GS.heatLevel = Math.max(0, (GS.heatLevel||0) - 30);
+  toast('🧊 Chaleur réduite — les flics sont soudoyés!', 'info');
+  updateTopbar();
+  renderUnderground();
 }
 
 // ════════════════════════════════════════════════
