@@ -2481,37 +2481,45 @@ let plinkoCooldown = false;
 
 function buildPlinko() {
   return `
-  <div style="display:flex;gap:16px;max-width:720px;margin:0 auto">
+  <div style="display:flex;gap:16px;max-width:760px;margin:0 auto">
     <div style="flex:1;min-width:0">
       <canvas id="plinko-canvas" style="width:100%;border:1px solid var(--border);border-radius:12px;display:block;background:#070a0f"></canvas>
     </div>
-    <div style="width:170px;flex-shrink:0;display:flex;flex-direction:column;gap:10px">
-      <div class="card" style="background:var(--bg3);padding:12px">
-        <div class="label" style="margin-bottom:6px">Mise par bille</div>
-        <input class="bet-input" id="plinko-bet" type="number" value="10" min="1" style="width:100%;margin-bottom:6px">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+    <div style="width:185px;flex-shrink:0;display:flex;flex-direction:column;gap:8px">
+      <div class="card" style="background:var(--bg3);padding:10px">
+        <div class="label" style="margin-bottom:5px">Mise par bille</div>
+        <input class="bet-input" id="plinko-bet" type="number" value="10" min="1" style="width:100%;margin-bottom:5px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px">
           <button class="bet-preset" onclick="document.getElementById('plinko-bet').value=10">$10</button>
           <button class="bet-preset" onclick="document.getElementById('plinko-bet').value=50">$50</button>
           <button class="bet-preset" onclick="document.getElementById('plinko-bet').value=100">$100</button>
           <button class="bet-preset" onclick="document.getElementById('plinko-bet').value=500">$500</button>
         </div>
       </div>
-      <div class="card" style="background:var(--bg3);padding:12px">
+      <div class="card" style="background:var(--bg3);padding:10px">
         <div class="label" style="margin-bottom:4px">Risque</div>
-        <select class="input" id="plinko-risk" style="font-size:11px" onchange="drawPlinkoBoard()">
+        <select class="input" id="plinko-risk" style="font-size:11px" onchange="drawPlinkoBoard();updatePlinkoHint()">
           <option value="low">🟢 Faible — rapide</option>
           <option value="mid" selected>🟡 Moyen — lent</option>
           <option value="high">🔴 Élevé — très lent</option>
         </select>
-        <div style="font-size:9px;color:var(--text-dim);margin-top:4px" id="plinko-risk-hint">×0.1 à ×2.0 — trajet long</div>
+        <div style="font-size:9px;color:var(--text-dim);margin-top:3px" id="plinko-risk-hint">×0.1 à ×2.0 — trajet long</div>
       </div>
-      <button class="spin-btn" id="plinko-drop-btn" onclick="plinkoDropBall()" style="width:100%;font-size:15px;padding:10px">🔵 LANCER</button>
-      <button class="spin-btn" id="plinko-multi5" onclick="plinkoDropMulti(5)" style="width:100%;font-size:13px;padding:8px;background:linear-gradient(135deg,#1565c0,#0d47a1);color:#fff">× 5 BILLES</button>
-      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px">
-        <div class="label" style="margin-bottom:4px">Cash</div>
-        <div style="color:var(--gold-light);font-family:var(--font-display);font-size:16px" id="plinko-cash">$${formatNum(GS.cash,2)}</div>
+      <button class="spin-btn" id="plinko-drop-btn" onclick="plinkoDropBall(1)" style="width:100%;font-size:14px;padding:9px">🔵 LANCER</button>
+      <button class="spin-btn" id="plinko-multi5" onclick="plinkoDropBall(5)" style="width:100%;font-size:12px;padding:7px;background:linear-gradient(135deg,#1565c0,#0d47a1);color:#fff">🔵×5 SIMULTANÉES</button>
+      <button class="spin-btn" id="plinko-multi10" onclick="plinkoDropBall(10)" style="width:100%;font-size:12px;padding:7px;background:linear-gradient(135deg,#4a148c,#311b92);color:#fff">🔵×10 SIMULTANÉES</button>
+
+      <!-- Lifestyle wager -->
+      <div class="card" style="background:var(--bg3);padding:10px;flex:1;overflow-y:auto;max-height:160px">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--orange);margin-bottom:5px">🎲 Miser un bien</div>
+        <div id="plinko-lifestyle-list" style="font-size:10px"></div>
       </div>
-      <div id="plinko-last" style="font-family:var(--font-display);font-size:20px;letter-spacing:2px;text-align:center;min-height:28px"></div>
+
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:11px">
+        <div class="label" style="margin-bottom:3px">Cash</div>
+        <div style="color:var(--gold-light);font-family:var(--font-display);font-size:15px" id="plinko-cash">$${formatNum(GS.cash,2)}</div>
+      </div>
+      <div id="plinko-last" style="font-family:var(--font-display);font-size:20px;letter-spacing:2px;text-align:center;min-height:26px"></div>
       <div id="plinko-cd" style="font-size:10px;color:var(--orange);text-align:center;min-height:14px"></div>
     </div>
   </div>`;
@@ -2527,7 +2535,50 @@ function initPlinko() {
   plinkoCooldown = false;
   if (plinkoRAF) cancelAnimationFrame(plinkoRAF);
   updatePlinkoHint();
+  renderPlinkoLifestyleList();
   plinkoLoop();
+}
+
+function renderPlinkoLifestyleList() {
+  const el = document.getElementById('plinko-lifestyle-list');
+  if (!el) return;
+  const owned = LIFESTYLE_ITEMS.filter(it => (GS.lifestyle[it.id] || 0) > 0);
+  if (!owned.length) {
+    el.innerHTML = '<div style="color:var(--text-muted)">Aucun bien possédé.<br>Achetez dans Style de Vie!</div>';
+    return;
+  }
+  el.innerHTML = owned.map(it => {
+    const qty = GS.lifestyle[it.id];
+    const wagered = it._plinkoWagered;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--border)">
+      <span>${it.icon} ${it.name} ${qty > 1 ? `×${qty}` : ''}</span>
+      <button onclick="togglePlinkoAssetWager('${it.id}')" style="font-size:9px;padding:2px 6px;border-radius:4px;border:1px solid ${wagered?'var(--orange)':'var(--border)'};background:${wagered?'rgba(255,152,0,0.15)':'var(--bg)'};color:${wagered?'var(--orange)':'var(--text-dim)'};cursor:pointer">
+        ${wagered ? '✓ Misé' : 'Miser'}
+      </button>
+    </div>`;
+  }).join('');
+}
+
+let plinkoWageredAsset = null; // { id, value }
+
+function togglePlinkoAssetWager(id) {
+  const item = LIFESTYLE_ITEMS.find(i => i.id === id);
+  if (!item || !(GS.lifestyle[id] > 0)) return;
+  if (plinkoWageredAsset && plinkoWageredAsset.id === id) {
+    plinkoWageredAsset = null;
+    item._plinkoWagered = false;
+    toast(`${item.icon} Pari annulé`, 'info');
+  } else {
+    // Remove previous wager if any
+    if (plinkoWageredAsset) {
+      const prev = LIFESTYLE_ITEMS.find(i => i.id === plinkoWageredAsset.id);
+      if (prev) prev._plinkoWagered = false;
+    }
+    plinkoWageredAsset = { id, value: item.price };
+    item._plinkoWagered = true;
+    toast(`${item.icon} ${item.name} misé sur la prochaine bille!`, 'info');
+  }
+  renderPlinkoLifestyleList();
 }
 
 function updatePlinkoHint() {
@@ -2650,44 +2701,58 @@ function startPlinkoCooldown(ms) {
   }, 100);
 }
 
-function plinkoDropBall() {
+function plinkoDropBall(n = 1) {
   if (plinkoCooldown) { toast('Attendez le cooldown!', 'lose'); return; }
   const bet = parseInt(document.getElementById('plinko-bet')?.value) || 10;
-  if (GS.cash < bet) { toast('Fonds insuffisants!', 'lose'); return; }
-  GS.cash -= bet;
-  GS.casinoStats.totalPlayed++;
-  GS.casinoStats.totalLost += bet;
+  const totalBet = bet * n;
+  if (GS.cash < totalBet) { toast('Fonds insuffisants!', 'lose'); return; }
+
+  const risk = document.getElementById('plinko-risk')?.value || 'mid';
+  const W = 480;
+
+  // Handle asset wager on first ball only
+  let assetOnBall = null;
+  if (plinkoWageredAsset && n === 1) {
+    const item = LIFESTYLE_ITEMS.find(i => i.id === plinkoWageredAsset.id);
+    if (item && GS.lifestyle[plinkoWageredAsset.id] > 0) {
+      // Remove asset immediately
+      if (GS.lifestyle[plinkoWageredAsset.id] > 1) GS.lifestyle[plinkoWageredAsset.id]--;
+      else delete GS.lifestyle[plinkoWageredAsset.id];
+      item._plinkoWagered = false;
+      assetOnBall = { id: plinkoWageredAsset.id, value: plinkoWageredAsset.value, icon: item.icon, name: item.name };
+      plinkoWageredAsset = null;
+    }
+  }
+
+  GS.cash -= totalBet;
+  GS.casinoStats.totalPlayed += n;
+  GS.casinoStats.totalLost += totalBet;
   updateTopbar();
   const cashEl = document.getElementById('plinko-cash');
   if (cashEl) cashEl.textContent = '$' + formatNum(GS.cash, 2);
 
-  const risk = document.getElementById('plinko-risk')?.value || 'mid';
-  const W = 480;
-  plinkoBalls.push({
-    x: W / 2 + (Math.random() - 0.5) * 6,
-    y: 20,
-    vx: (Math.random() - 0.5) * 0.8,
-    vy: 0.5,
-    r: 7,
-    bet,
-    risk,
-    trail: [],
-    landed: false,
-    alpha: 1,
-    color: `hsl(${Math.random() * 360},80%,60%)`
-  });
+  // Drop all n balls simultaneously with slight horizontal spread
+  for (let i = 0; i < n; i++) {
+    plinkoBalls.push({
+      x: W / 2 + (Math.random() - 0.5) * (n > 1 ? 20 : 6),
+      y: 20 + i * 2,
+      vx: (Math.random() - 0.5) * 0.8,
+      vy: 0.5,
+      r: 7,
+      bet,
+      risk,
+      trail: [],
+      landed: false,
+      alpha: 1,
+      color: `hsl(${(i / n) * 360},80%,60%)`,
+      assetWager: i === 0 ? assetOnBall : null // only first ball carries the asset
+    });
+  }
 
-  // Cooldown: 1s faible, 2s moyen, 3.5s élevé
+  // Single cooldown AFTER all balls are launched
   const cooldowns = { low: 1000, mid: 2000, high: 3500 };
   startPlinkoCooldown(cooldowns[risk]);
-}
-
-function plinkoDropMulti(n) {
-  if (plinkoCooldown) { toast('Attendez le cooldown!', 'lose'); return; }
-  const risk = document.getElementById('plinko-risk')?.value || 'mid';
-  const cooldowns = { low: 1000, mid: 2000, high: 3500 };
-  const delay = cooldowns[risk];
-  for (let i = 0; i < n; i++) setTimeout(plinkoDropBall, i * delay);
+  renderPlinkoLifestyleList();
 }
 
 function plinkoLoop() {
@@ -2762,6 +2827,22 @@ function plinkoLoop() {
         gainXP(Math.ceil(payout / 50));
         checkAchievement('first_win', true);
         if (mult >= 2) toast(`🔵 WIN ×${mult}! +$${formatNum(payout)}`, 'win');
+      }
+
+      // Asset wager resolution
+      if (ball.assetWager) {
+        const av = ball.assetWager;
+        if (mult >= 1) {
+          // Win: get asset value back as cash
+          const assetPayout = Math.round(av.value * mult);
+          GS.cash += assetPayout;
+          toast(`${av.icon} ${av.name} × ${mult} = +$${formatNum(assetPayout)}!`, 'win');
+          spawnCoins(8);
+        } else {
+          toast(`${av.icon} ${av.name} perdu(e)! (×${mult})`, 'lose');
+        }
+        ball.assetWager = null;
+        renderPlinkoLifestyleList();
       }
 
       const lastEl = document.getElementById('plinko-last');
